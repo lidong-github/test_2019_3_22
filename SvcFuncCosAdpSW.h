@@ -17,7 +17,16 @@ BGN_NAMESPACE_MA
 
 #define  HEAD_LENTHS 256
 
-struct ST_ORDER_PARAM 
+struct ST_ORDER_PARAM
+{
+  short siSubsysSn;
+  long long llOrderTime;
+  BOOL bIsCancel;
+  ma::CMsgData clMsgData;
+  long long llOrderNo;
+};
+
+/*struct ST_ORDER_PARAM 
 {
   char          szOrderDate[32 + 1];               // 委托日期
   char          szSession[256 + 1];
@@ -107,7 +116,7 @@ struct ST_CANCEL_PARAM
   char          szExSystem[1 + 1];            // 外部系统
   int           iCancleOrderNo;               // 撤单委托编号    
 };
-
+*/
 class CSvcFuncCosAdpSWReq : public ISvcFunc
 {
   DECLARE_DYNCREATE(CSvcFuncCosAdpSWReq)
@@ -131,14 +140,15 @@ public:
   static xsdk::CRWLock   m_clRWLock;
   static xsdk_atomic_t   m_iInstanceCnt;
   static std::map<std::string, ST_ORDER_PARAM>  m_mapCosOrderParam;
-  static std::map<std::string, ST_CANCEL_PARAM> m_mapCosCancelParam;
 public:
   int GetTrdDate(int &p_refTrdDate);
-  static std::string GetTrdOrderNo(int iOrderNo, int iTrdDate);
   int  GetXaInfo(ST_XA_INFO &p_refstXaInfo, short siXaId);
-  int  MakeOrderParam(ST_ORDER_PARAM & p_stOrderParam);
-  int  MakeCancelParam(ST_CANCEL_PARAM &P_stCzncelParam);
+  static std::string GetTrdOrderNo(long long llOrderNo, int iTrdDate);
   std::string GetTrdCuacctCode(const char *p_pszCuacctCode, const char chCuacctType);
+  int MakeCancel10388902(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
+  int Make10388902(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
+  void SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char chPkgType, char chMsgType, char chFunType, const char *szFunID);
+  void SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const char *p_pszCust, const char * szSession, const char *szFunID, const char * szOptSite, short siOpOrg, char chChannel);
 private:
   unsigned int m_uiSrcFuncId;
   std::string m_strSrcFuncName;
@@ -184,15 +194,12 @@ public:
   virtual int OnEvent(unsigned int p_uiEventId, ma::CObjectPtr<ma::IData> &p_refptrEventData);
 
 private:
-  int  Make10388902(const ST_ORDER_PARAM &stOrderParam, bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
-  int  Make10388102(const ST_CANCEL_PARAM &stCancelParam, CMsgData &clMakeMsgData);
-  int  MakeCancel10388902(const ST_CANCEL_PARAM &stCancelParam,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
-  int  Make10388105(const ST_ORDER_PARAM &stOrderParam, CMsgData &clMakeMsgData);
+  int  Make10388902(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
+  int  MakeCancel10388902(ma::CMsgData clMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
   void SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char chPkgType, char chMsgType, char chFunType, const char *szFunID);
   void SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const char *p_pszCust, const char * szSession, const char *szFunID, const char * szOptSite, short siOpOrg, char chChannel);
   int  CheckTimeOut(long long p_llCurrentTime);
   int  GetTrdDate(int &p_refTrdDate);
-  void DumpMsgData(CMsgData &oMsgData);
 private:
   unsigned int m_uiSrcFuncId;
   std::string m_strSrcFuncName;
