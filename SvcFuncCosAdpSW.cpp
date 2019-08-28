@@ -1044,6 +1044,14 @@ int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
           else
           {
             //  找到原委托应该出的队列
+            std::map<short, ST_XA>::iterator itrXa;
+            itrXa = m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
+            if(itrXa == m_mapSysSnQueue.end())
+            {
+              ma::ThrowError(NULL,"CSvcFuncCosAdpSWAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
+              CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+              _ma_leave; 
+            }
             if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
             {
               ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
@@ -1081,6 +1089,14 @@ int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
            }
            else
            {
+             std::map<short, ST_XA>::iterator itrXa;
+             itrXa = m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
+             if(itrXa == m_mapSysSnQueue.end())
+             {
+               ma::ThrowError(NULL,"CSvcFuncCosAdpSWAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
+               CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+               _ma_leave; 
+             }
              if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
              {
                ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
@@ -1455,7 +1471,6 @@ int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
     // 找到委托
     if (itrOrder != CSvcFuncCosAdpSWReq::m_mapCosOrderParam.end())
     {
-
       // 应答成功
       if (iMsgCode  == MA_OK)
       {
@@ -1516,7 +1531,8 @@ int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
     // 不是本节点
     else 
     {
-     
+      CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+      _ma_leave;
     }
   }
   _ma_catch_finally
