@@ -40,7 +40,6 @@ xsdk_atomic_t CSvcFuncCosAdpSWReq::m_iInstanceCnt = 0;
 xsdk::CRWLock CSvcFuncCosAdpSWReq::m_clRWLock;
 
  std::map<std::string, ST_ORDER_PARAM>  CSvcFuncCosAdpSWReq::m_mapCosOrderParam;
-//std::map<std::string, ST_CANCEL_PARAM> CSvcFuncCosAdpSWReq::m_mapCosCancelParam;
 
 int UTF8ToGB2312(char *p_pszGBText, int p_iGBSize, const char *p_pUtf8Text, int p_iUtf8Len)
 {
@@ -1258,6 +1257,116 @@ int CSvcFuncCosAdpSWAns::MakeCancel10388902(ma::CMsgData clMakeMsgDataIn,  bool 
   return iRetCode;
 }
 
+int CSvcFuncCosAdpSWAns::GetXaInFoFromName()
+{
+  int iRetCode = MA_OK;
+  CObjectPtr<IDataSysbpuXa>            ptrDataXa;
+  CObjectPtr<IDaoSysbpuXa>             ptrDaoXa;
+  CObjectPtr<IDataSysbpuXaUidx1>       ptrDataSysbpuXaUidx1;
+  CObjectPtr<IRuntimeDb>               ptrRuntimeDb;
+  CObjectPtr<IDBEngine>                ptrRtdbDBEngine;
+  int iHandle = -1;
+  char* pszTemp = NULL;
+  char szQueueId[8] = {0};
+  char szOpen[128+1] = {0};
+
+  _ma_try
+  {
+    m_ptrServiceEnv->GetRuntimeDb(ptrRuntimeDb);
+
+    if (ptrRuntimeDb.IsNull()
+      || ptrRuntimeDb->GetDBEngine(ptrRtdbDBEngine) != MA_OK
+      || ptrRtdbDBEngine.IsNull())
+    {
+      iRetCode = MA_ERROR_OBJECT_UNINITIATED;
+      ma::ThrowError(NULL, "CSFuncTsuGetReq[{@1}] ptrRuntimeDb::GetDBEngine(ptrRtdbDBEngine) fail!", &_P(__LINE__));
+      _ma_leave;
+    }
+
+    if (ptrDataXa.Create("CDataSysbpuXa").IsNull()
+      || ptrDaoXa.Create("CDaoSysbpuXa").IsNull()
+      || ptrDataSysbpuXaUidx1.Create("CDataSysbpuXaUidx1").IsNull()
+      || ptrDaoXa->SetDBEngine(ptrRtdbDBEngine) != MA_OK
+      )
+    {
+      iRetCode = MA_ERROR_OBJECT_UNINITIATED;
+      ma::ThrowError(NULL, "CSFuncTsuGetReq[{@1}] CDataSysbpuXa/CDaoSysbpuXa/CDataSysbpuXaUidx2 Create fail!", &_P(__LINE__));
+      _ma_leave;
+    }
+
+    if (m_ptrDaoSubsysCfg.Create("CDaoSubsysCfg").IsNull()
+      || m_ptrDataSubsysCfg.Create("CDataSubsysCfg").IsNull()
+      || m_ptrDataSubsysCfgUidx1.Create("CDataSubsysCfgUidx1").IsNull()
+      || m_ptrDataSubsysCfgEx1.Create("CDataSubsysCfgEx1").IsNull()
+      || m_ptrDaoSubsysCfg->SetDBEngine(m_ptrDBEngine) != MA_OK)           
+    {
+      iRetCode = MA_ERROR_OBJECT_UNINITIATED;
+      ma::ThrowError(NULL, "CSFuncTsuGetReq[{@1}] CDaoSubsysCfg/CDataSubsysCfg/CDataSubsysCfgUidx1/CDataSubsysCfgEx1 Create fail!", &_P(__LINE__));
+      _ma_leave;
+    }  
+
+    m_ptrDataSubsysCfgEx1->SetInput(1);
+    iRetCode = m_ptrDaoSubsysCfg->OpenCursor(iHandle, m_ptrDataSubsysCfg, m_ptrDataSubsysCfgEx1);
+    if (iRetCode != MA_OK)
+    {
+      m_strLastErrorText = m_ptrDaoSubsysCfg->GetLastErrorText();
+      m_iLastErrorCode = iRetCode;
+      _ma_leave;
+    }
+
+    ST_XA stXa = {0};
+    while(m_ptrDaoSubsysCfg->Fetch(iHandle) == MA_OK)
+    {
+      ptrDataSysbpuXaUidx1->Initialize();
+      ptrDataSysbpuXaUidx1->SetXaId(m_ptrDataSubsysCfg->GetSubsysSn());
+      iRetCode = ptrDaoXa->Select(ptrDataXa, ptrDataSysbpuXaUidx1);
+      if (iRetCode != MA_OK && iRetCode != MA_NO_DATA)
+      {
+        m_strLastErrorText = ptrDaoXa->GetLastErrorText();
+        m_ptrDaoSubsysCfg->CloseCursor(iHandle);
+        _ma_leave;
+      }
+      else if (iRetCode == MA_NO_DATA)
+      {
+        continue;
+      }
+      else
+      {
+        snprintf(szOpen,sizeof(szOpen), "%s", ptrDataXa->GetXaOpen());
+        pszTemp = strstr(szOpen, "trans_que=");
+        if (pszTemp != NULL)
+        {
+          xsdk::SubTagString(szQueueId, sizeof(szQueueId), pszTemp, "trans_que", '=', ';');
+
+          //将交易系统编码与查找到的队列加入map
+          memset(&stXa, 0, sizeof(ST_XA));
+          stXa.iQueueId = atoi(szQueueId);
+          stXa.siSubSys = m_ptrDataSubsysCfg->GetSubsys();
+          stXa.siSubSysSn = m_ptrDataSubsysCfg->GetSubsysSn();
+          stXa.chSubSysStatus = m_ptrDataSubsysCfg->GetSubsysStatus();
+          strcpy(stXa.szSubsysSnType, m_ptrDataSubsysCfg->GetSubsysType());
+          strcpy(stXa.szSubsysConnstr, m_ptrDataSubsysCfg->GetSubsysConnstr());
+          strcpy(stXa.szSubSysDbConnstr, m_ptrDataSubsysCfg->GetSubsysDbConnstr());
+          m_mapSysSnQueue[stXa.siSubSysSn] = stXa;
+        }
+        else
+        {
+          ma::ThrowError(NULL,  "CSFuncTsuGetReq[{@1}] GetXaOpen[{@2}] have not trans_que=",
+            &( _P(__LINE__) + _P(szOpen)));
+        }
+      }
+    }
+    m_ptrDaoSubsysCfg->CloseCursor(iHandle);
+  }
+
+  _ma_catch_finally
+  {
+    ptrRtdbDBEngine->Commit();
+    COS_ERROR_PRINT
+  }
+  return iRetCode;
+}
+
 int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
 {
   int	iRetCode = MA_OK;
@@ -1274,6 +1383,7 @@ int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
   Json::Value  JsonValue;
   SYSTEMTIME stCurrentTime = {0};
   char szMsgDataIn[128] = {0};
+  unsigned int uiOutQueId = 0;
 
   _ma_try
   {
@@ -1345,13 +1455,20 @@ int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
     // 找到委托
     if (itrOrder != CSvcFuncCosAdpSWReq::m_mapCosOrderParam.end())
     {
-      // todo找到原委托需要发送队列
 
       // 应答成功
       if (iMsgCode  == MA_OK)
       {
+        // todo找到原委托需要发送队列
         // 成功直接把包发出去
-        if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
+        std::map<short, ST_XA>::iterator itrXa;
+        itrXa = m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
+        if(itrXa == m_mapSysSnQueue.end())
+        {
+          ma::ThrowError(NULL,"CSvcFuncCosAdpSWAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
+          _ma_leave; 
+        }
+        if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, itrXa->second.iQueueId, m_uiSrcFuncId)) != MA_OK)
         {
           ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
             &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode)));

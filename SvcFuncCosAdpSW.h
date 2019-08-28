@@ -170,6 +170,7 @@ private:
   CObjectPtr<IBizOrderDataInit>  m_ptrBizOrderDataInit;
   CObjectPtr<IServiceEnv>   m_ptrServiceEnv;
   CObjectPtr<IPacketMap>    m_ptrPacketMapIn;
+  CObjectPtr<IMsgQueue>     m_ptrMsgQueuePut;
   ma::CMsgData              m_clMsgDataOut;
   CObjectPtr<IPacketMap>    m_ptrPacketMapOut;
   ma::CMsgData              m_clMsgDataIn; 
@@ -200,6 +201,7 @@ private:
   void SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const char *p_pszCust, const char * szSession, const char *szFunID, const char * szOptSite, short siOpOrg, char chChannel);
   int  CheckTimeOut(long long p_llCurrentTime);
   int  GetTrdDate(int &p_refTrdDate);
+  int  GetXaInFoFromName();
 private:
   unsigned int m_uiSrcFuncId;
   std::string m_strSrcFuncName;
@@ -220,6 +222,11 @@ private:
 
   unsigned int m_uiCurrNodeId;
 
+  CObjectPtr<IDataSubsysCfg>               m_ptrDataSubsysCfg;
+  CObjectPtr<IDaoSubsysCfg>                m_ptrDaoSubsysCfg;
+  CObjectPtr<IDataSubsysCfgEx1>            m_ptrDataSubsysCfgEx1;
+  CObjectPtr<IDataSubsysCfgUidx1>          m_ptrDataSubsysCfgUidx1;
+
   CObjectPtr<IDBEngine>						m_ptrDBEngine;
   CObjectPtr<IDataEventPackage>   m_ptrDataEventPackage;
   CObjectPtr<IBizOrderDataInit>  m_ptrBizOrderDataInit;
@@ -230,6 +237,17 @@ private:
 
   ma::CMsgData m_clMsgDataIn;
   ma::CMsgData m_clMsgDataOut;
+  struct ST_XA
+  {
+    char  szSubsysConnstr[128 + 1];
+    char  szSubsysSnType[2 + 1];
+    char  chSubSysStatus;
+    int   iQueueId;
+    short siSubSys;
+    short siSubSysSn;
+    char  szSubSysDbConnstr[32];
+  };
+  std::map<short, ST_XA>         m_mapSysSnQueue;   //系统编码-对应xa配置的队列
 };
 
 END_NAMESPACE_MA
