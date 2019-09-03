@@ -2,18 +2,18 @@
 // 版权声明：本程序模块属于金证微内核架构平台(KMAP)的一部分
 //           国信证券 & 金证科技  版权所有
 //
-// 文件名称：SvcFuncCosAdpSW.cpp
+// 文件名称：SvcFuncCosAdpSw.cpp
 // 模块名称：申万宏源风控适配器
 // 模块描述：
 // 开发作者：李东
-// 创建日期：2019-07-25
+// 创建日期：2019-08-25
 // 模块版本：1.0.000.000
 //--------------------------------------------------------------------------------------------------
 // 修改日期      版本          作者            备注
 //--------------------------------------------------------------------------------------------------
 // 2019-07-25   1.0.000.000   李东          初创
 //--------------------------------------------------------------------------------------------------
-#include "SvcFuncCosAdpSW.h"
+#include "SvcFuncCosAdpSw.h"
 #include "maGlobal.h"
 #include "xsdk_string.h"
 #include "xsdk_datetime.h"
@@ -33,13 +33,14 @@
 
 USE_NAMESPACE_MA
 
-  IMPLEMENT_DYNCREATE(CSvcFuncCosAdpSWReq, ISvcFunc, _V("001.000.001"))
-  IMPLEMENT_DYNCREATE(CSvcFuncCosAdpSWAns, ISvcFunc, _V("001.000.000"))
+  IMPLEMENT_DYNCREATE(CSvcFuncCosAdpSwReq, ISvcFunc, _V("001.000.001"))
+  IMPLEMENT_DYNCREATE(CSvcFuncCosAdpSwAns, ISvcFunc, _V("001.000.000"))
 
-xsdk_atomic_t CSvcFuncCosAdpSWReq::m_iInstanceCnt = 0;
-xsdk::CRWLock CSvcFuncCosAdpSWReq::m_clRWLock;
+xsdk_atomic_t CSvcFuncCosAdpSwReq::m_iInstanceCnt = 0;
+xsdk::CRWLock CSvcFuncCosAdpSwReq::m_clRWLock;
 
- std::map<std::string, ST_ORDER_PARAM>  CSvcFuncCosAdpSWReq::m_mapCosOrderParam;
+ std::map<short, ST_XA>  CSvcFuncCosAdpSwReq::m_mapSysSnQueue; 
+ std::map<std::string, ST_ORDER_PARAM>  CSvcFuncCosAdpSwReq::m_mapCosOrderParam;
 
 int UTF8ToGB2312(char *p_pszGBText, int p_iGBSize, const char *p_pUtf8Text, int p_iUtf8Len)
 {
@@ -97,21 +98,21 @@ int UTF8ToGB2312(char *p_pszGBText, int p_iGBSize, const char *p_pUtf8Text, int 
   return iRetCode;
 }
 
-CSvcFuncCosAdpSWReq::CSvcFuncCosAdpSWReq(void)
+CSvcFuncCosAdpSwReq::CSvcFuncCosAdpSwReq(void)
 {
 }
 
-CSvcFuncCosAdpSWReq::~CSvcFuncCosAdpSWReq(void)
+CSvcFuncCosAdpSwReq::~CSvcFuncCosAdpSwReq(void)
 {
 }
 
-int CSvcFuncCosAdpSWReq::Initialize(void)
+int CSvcFuncCosAdpSwReq::Initialize(void)
 {
   int iRetCode = MA_OK;
 
   _ma_try
   {
-    if (xsdk_AtomicAdd(&CSvcFuncCosAdpSWReq::m_iInstanceCnt, 1) <= 0)
+    if (xsdk_AtomicAdd(&CSvcFuncCosAdpSwReq::m_iInstanceCnt, 1) <= 0)
     {    
       m_mapCosOrderParam.clear();
       m_clRWLock.Create();
@@ -124,13 +125,13 @@ int CSvcFuncCosAdpSWReq::Initialize(void)
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWReq::Uninitialize(void)
+int CSvcFuncCosAdpSwReq::Uninitialize(void)
 {
   int iRetCode = MA_OK;
 
   _ma_try
   {
-    if (xsdk_AtomicDec(&CSvcFuncCosAdpSWReq::m_iInstanceCnt) <= 0)
+    if (xsdk_AtomicDec(&CSvcFuncCosAdpSwReq::m_iInstanceCnt) <= 0)
     {  
       m_mapCosOrderParam.clear();
       m_clRWLock.Close();
@@ -143,7 +144,7 @@ int CSvcFuncCosAdpSWReq::Uninitialize(void)
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWReq::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p_iValueSize)
+int CSvcFuncCosAdpSwReq::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p_iValueSize)
 {
   int iRetCode = MA_OK;
 
@@ -154,7 +155,7 @@ int CSvcFuncCosAdpSWReq::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
       iRetCode = MA_ERROR_INVALID_PARAM;
       _ma_throw ma::CFuncException(iRetCode,
         "parameter '{@1}' of function '{@2}' invalid paramter ",
-        &(CRtmParam("p_pvdValuePtr") + CRtmParam("CSvcFuncCosAptSfitCtp::SetOptions")));
+        &(CRtmParam("p_pvdValuePtr") + CRtmParam("CSvcFuncCosAdpSwReq::SetOptions")));
     }
 
     switch (p_iOptionInd)
@@ -177,7 +178,7 @@ int CSvcFuncCosAdpSWReq::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
       iRetCode = MA_ERROR_OPTION_UNSUPPORTED;
       _ma_throw ma::CFuncException(iRetCode,
         "{@1} option {@2} unsupported",
-        &(CRtmParam("CSvcFuncCosAptSfitCtp") + CRtmParam(p_iOptionInd)));
+        &(CRtmParam("CSvcFuncCosAdpSwReq") + CRtmParam(p_iOptionInd)));
       break;
     }
   }
@@ -188,7 +189,7 @@ int CSvcFuncCosAdpSWReq::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWReq::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p_iValueSize)
+int CSvcFuncCosAdpSwReq::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p_iValueSize)
 {
   int iRetCode = MA_OK;
 
@@ -199,7 +200,7 @@ int CSvcFuncCosAdpSWReq::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
       iRetCode = MA_ERROR_INVALID_PARAM;
       _ma_throw ma::CFuncException(iRetCode,
         "invalid parameter '{@1}' of function '{@2}' ",
-        &(CRtmParam("p_pvdValuePtr") + CRtmParam("CSvcFuncCosAptSfitCtp::GetOptions")));
+        &(CRtmParam("p_pvdValuePtr") + CRtmParam("CSvcFuncCosAdpSwReq::GetOptions")));
     }
 
     if (p_iValueSize <= 0)
@@ -207,7 +208,7 @@ int CSvcFuncCosAdpSWReq::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
       iRetCode = MA_ERROR_INVALID_PARAM;
       _ma_throw ma::CFuncException(iRetCode,
         "paramter {@1} of function {@2} invalid paramter",
-        &(CRtmParam("p_iValueSize")+ CRtmParam("CSvcFuncCosAptSfitCtp::GetOptions")));
+        &(CRtmParam("p_iValueSize")+ CRtmParam("CSvcFuncCosAdpSwReq::GetOptions")));
     }
 
     switch(p_iOptionInd)
@@ -242,7 +243,7 @@ int CSvcFuncCosAdpSWReq::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWReq::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcEnv)
+int CSvcFuncCosAdpSwReq::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcEnv)
 {
   int iRetCode = MA_OK;
   char szValue[8] = {0};
@@ -283,7 +284,7 @@ int CSvcFuncCosAdpSWReq::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcE
     iRetCode = GetXaInfo(m_stDefaultXaInfo, m_stSysNode.siDftXaId);
     if (iRetCode != MA_OK)
     {
-      ma::ThrowError(NULL, "CSvcFuncCosAdpSfitCtpReq[{@1}] call object GetXaInfo() failed, return {@2}", 
+      ma::ThrowError(NULL, "CSvcFuncCosAdpSwReq[{@1}] call object GetXaInfo() failed, return {@2}", 
         &(_P(__LINE__) + _P(iRetCode)));
       _ma_leave;
     }
@@ -294,11 +295,12 @@ int CSvcFuncCosAdpSWReq::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcE
 
     if ((iRetCode = m_stDefaultXaInfo.ptrXa->Open(m_stDefaultXaInfo.szOpen, 0, 0)) != MA_OK)
     {
-      ma::ThrowError(NULL, "CSvcFuncCosAdpSfitCtpReq open:[{@1}] fail, return {@2} - {@3}",
+      ma::ThrowError(NULL, "CSvcFuncCosAdpSwReq open:[{@1}] fail, return {@2} - {@3}",
         &(_P(m_stDefaultXaInfo.szOpen) + _P(iRetCode) + _P(m_stDefaultXaInfo.ptrXa->GetLastErrorText())));
       _ma_leave;
     }
     m_stDefaultXaInfo.ptrXa->GetDBEngine(m_ptrDBEngine);
+    GetXaInFoFromName();
   }
   _ma_catch_finally
   {
@@ -306,21 +308,21 @@ int CSvcFuncCosAdpSWReq::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcE
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWReq::OnEvent(unsigned int p_uiEventId, ma::CObjectPtr<ma::IData> &p_refptrEventData)
+int CSvcFuncCosAdpSwReq::OnEvent(unsigned int p_uiEventId, ma::CObjectPtr<ma::IData> &p_refptrEventData)
 {
   int iRetCode = MA_OK;
 
   return iRetCode;
 }
 
-std::string CSvcFuncCosAdpSWReq::GetTrdCuacctCode(const char *p_pszCuacctCode, const char chCuacctType)
+std::string CSvcFuncCosAdpSwReq::GetTrdCuacctCode(const char *p_pszCuacctCode, const char chCuacctType)
 {
   char szTrdCuacctCode[32] = {0};
   snprintf(szTrdCuacctCode,sizeof(szTrdCuacctCode), "%s%c", p_pszCuacctCode, chCuacctType);
   return szTrdCuacctCode;
 }
 
-int ma::CSvcFuncCosAdpSWReq::GetXaInfo(ST_XA_INFO &p_refstXaInfo, short siXaId)
+int ma::CSvcFuncCosAdpSwReq::GetXaInfo(ST_XA_INFO &p_refstXaInfo, short siXaId)
 {
   int iRetCode = MA_OK;
 
@@ -406,7 +408,117 @@ int ma::CSvcFuncCosAdpSWReq::GetXaInfo(ST_XA_INFO &p_refstXaInfo, short siXaId)
   return iRetCode;
 }
 
-void CSvcFuncCosAdpSWReq::SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char chPkgType, char chMsgType, char chFunType, const char *szFunID)
+int CSvcFuncCosAdpSwReq::GetXaInFoFromName()
+{
+  int iRetCode = MA_OK;
+  CObjectPtr<IDataSysbpuXa>            ptrDataXa;
+  CObjectPtr<IDaoSysbpuXa>             ptrDaoXa;
+  CObjectPtr<IDataSysbpuXaUidx1>       ptrDataSysbpuXaUidx1;
+  CObjectPtr<IRuntimeDb>               ptrRuntimeDb;
+  CObjectPtr<IDBEngine>                ptrRtdbDBEngine;
+  int iHandle = -1;
+  char* pszTemp = NULL;
+  char szQueueId[8] = {0};
+  char szOpen[128+1] = {0};
+
+  _ma_try
+  {
+    m_ptrServiceEnv->GetRuntimeDb(ptrRuntimeDb);
+
+    if (ptrRuntimeDb.IsNull()
+      || ptrRuntimeDb->GetDBEngine(ptrRtdbDBEngine) != MA_OK
+      || ptrRtdbDBEngine.IsNull())
+    {
+      iRetCode = MA_ERROR_OBJECT_UNINITIATED;
+      ma::ThrowError(NULL, "CSvcFuncCosAdpSwReq[{@1}] ptrRuntimeDb::GetDBEngine(ptrRtdbDBEngine) fail!", &_P(__LINE__));
+      _ma_leave;
+    }
+
+    if (ptrDataXa.Create("CDataSysbpuXa").IsNull()
+      || ptrDaoXa.Create("CDaoSysbpuXa").IsNull()
+      || ptrDataSysbpuXaUidx1.Create("CDataSysbpuXaUidx1").IsNull()
+      || ptrDaoXa->SetDBEngine(ptrRtdbDBEngine) != MA_OK
+      )
+    {
+      iRetCode = MA_ERROR_OBJECT_UNINITIATED;
+      ma::ThrowError(NULL, "CSvcFuncCosAdpSwReq[{@1}] CDataSysbpuXa/CDaoSysbpuXa/CDataSysbpuXaUidx2 Create fail!", &_P(__LINE__));
+      _ma_leave;
+    }
+
+    if (m_ptrDaoSubsysCfg.Create("CDaoSubsysCfg").IsNull()
+      || m_ptrDataSubsysCfg.Create("CDataSubsysCfg").IsNull()
+      || m_ptrDataSubsysCfgUidx1.Create("CDataSubsysCfgUidx1").IsNull()
+      || m_ptrDataSubsysCfgEx1.Create("CDataSubsysCfgEx1").IsNull()
+      || m_ptrDaoSubsysCfg->SetDBEngine(m_ptrDBEngine) != MA_OK)           
+    {
+      iRetCode = MA_ERROR_OBJECT_UNINITIATED;
+      ma::ThrowError(NULL, "CSvcFuncCosAdpSwReq[{@1}] CDaoSubsysCfg/CDataSubsysCfg/CDataSubsysCfgUidx1/CDataSubsysCfgEx1 Create fail!", &_P(__LINE__));
+      _ma_leave;
+    }  
+
+    m_ptrDataSubsysCfgEx1->SetInput(1);
+    iRetCode = m_ptrDaoSubsysCfg->OpenCursor(iHandle, m_ptrDataSubsysCfg, m_ptrDataSubsysCfgEx1);
+    if (iRetCode != MA_OK)
+    {
+      m_strLastErrorText = m_ptrDaoSubsysCfg->GetLastErrorText();
+      m_iLastErrorCode = iRetCode;
+      _ma_leave;
+    }
+
+    ST_XA stXa = {0};
+    while(m_ptrDaoSubsysCfg->Fetch(iHandle) == MA_OK)
+    {
+      ptrDataSysbpuXaUidx1->Initialize();
+      ptrDataSysbpuXaUidx1->SetXaId(m_ptrDataSubsysCfg->GetSubsysSn());
+      iRetCode = ptrDaoXa->Select(ptrDataXa, ptrDataSysbpuXaUidx1);
+      if (iRetCode != MA_OK && iRetCode != MA_NO_DATA)
+      {
+        m_strLastErrorText = ptrDaoXa->GetLastErrorText();
+        m_ptrDaoSubsysCfg->CloseCursor(iHandle);
+        _ma_leave;
+      }
+      else if (iRetCode == MA_NO_DATA)
+      {
+        continue;
+      }
+      else
+      {
+        snprintf(szOpen,sizeof(szOpen), "%s", ptrDataXa->GetXaOpen());
+        pszTemp = strstr(szOpen, "trans_que=");
+        if (pszTemp != NULL)
+        {
+          xsdk::SubTagString(szQueueId, sizeof(szQueueId), pszTemp, "trans_que", '=', ';');
+
+          //将交易系统编码与查找到的队列加入map
+          memset(&stXa, 0, sizeof(ST_XA));
+          stXa.iQueueId = atoi(szQueueId);
+          stXa.siSubSys = m_ptrDataSubsysCfg->GetSubsys();
+          stXa.siSubSysSn = m_ptrDataSubsysCfg->GetSubsysSn();
+          stXa.chSubSysStatus = m_ptrDataSubsysCfg->GetSubsysStatus();
+          strcpy(stXa.szSubsysSnType, m_ptrDataSubsysCfg->GetSubsysType());
+          strcpy(stXa.szSubsysConnstr, m_ptrDataSubsysCfg->GetSubsysConnstr());
+          strcpy(stXa.szSubSysDbConnstr, m_ptrDataSubsysCfg->GetSubsysDbConnstr());
+          m_mapSysSnQueue[stXa.siSubSysSn] = stXa;
+        }
+        else
+        {
+          ma::ThrowError(NULL,  "CSvcFuncCosAdpSwReq[{@1}] GetXaOpen[{@2}] have not trans_que=",
+            &( _P(__LINE__) + _P(szOpen)));
+        }
+      }
+    }
+    m_ptrDaoSubsysCfg->CloseCursor(iHandle);
+  }
+
+  _ma_catch_finally
+  {
+    ptrRtdbDBEngine->Commit();
+    COS_ERROR_PRINT
+  }
+  return iRetCode;
+}
+
+void CSvcFuncCosAdpSwReq::SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char chPkgType, char chMsgType, char chFunType, const char *szFunID)
 {
   ptrPacketMap->SetHdrColValue(chPkgType, MAP_FID_PKT_TYPE);
   ptrPacketMap->SetHdrColValue(chMsgType, MAP_FID_MSG_TYPE); 
@@ -418,7 +530,7 @@ void CSvcFuncCosAdpSWReq::SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char 
   ptrPacketMap->SetHdrColValue('1', MAP_FID_TOKEN_FLAG);
 }
 
-void CSvcFuncCosAdpSWReq::SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const char *p_pszCust, const char * szSession, const char *szFunID, const char * szOptSite, short siOpOrg, char chChannel)
+void CSvcFuncCosAdpSwReq::SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const char *p_pszCust, const char * szSession, const char *szFunID, const char * szOptSite, short siOpOrg, char chChannel)
 {
   ptrPacketMap->SetValue(p_pszCust, strlen(p_pszCust), "8810");
   ptrPacketMap->SetValue('1', "8811");
@@ -437,7 +549,7 @@ void CSvcFuncCosAdpSWReq::SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const
   ptrPacketMap->SetValue(siOpOrg, "8821");
 }
 
-int CSvcFuncCosAdpSWReq::GetTrdDate(int &p_refTrdDate)
+int CSvcFuncCosAdpSwReq::GetTrdDate(int &p_refTrdDate)
 {
   int iRetCode = MA_OK;
   _ma_try
@@ -447,7 +559,7 @@ int CSvcFuncCosAdpSWReq::GetTrdDate(int &p_refTrdDate)
       || (iRetCode = m_ptrBizOrderDataInit->SetServiceDBEngine(m_ptrDBEngine)) != MA_OK)
     {
       iRetCode = MA_ERROR_OBJECT_UNINITIATED;
-      ma::ThrowError(NULL, "CSFuncTsuGetReq[{@1}] CBizOrderDataInit Create Object fail!", &_P(__LINE__));
+      ma::ThrowError(NULL, "CSvcFuncCosAdpSwReq[{@1}] CBizOrderDataInit Create Object fail!", &_P(__LINE__));
       _ma_leave;
     }
     if (m_ptrBizOrderDataInit->GetSysTrdDate(p_refTrdDate) != MA_OK)  //获取交易日期
@@ -461,17 +573,17 @@ int CSvcFuncCosAdpSWReq::GetTrdDate(int &p_refTrdDate)
   return MA_OK;
 }
 
-std::string CSvcFuncCosAdpSWReq::GetTrdOrderNo(long long  llOrderNo, int iTrdDate)
+std::string CSvcFuncCosAdpSwReq::GetTrdOrderNo(long long  llOrderNo, int iTrdDate)
 {
   char szTrdCuacctCode[32] = {0};
   snprintf(szTrdCuacctCode,sizeof(szTrdCuacctCode), "%d%d", llOrderNo, iTrdDate);
   return szTrdCuacctCode;
 }
 
-int CSvcFuncCosAdpSWReq::Make10388902(ma::CMsgData clMakeMsgDataIn ,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData)
+int CSvcFuncCosAdpSwReq::Make10388904(ma::CMsgData clMakeMsgDataIn ,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData)
 {
   int iRetCode = MA_OK;
-  char szFuncId[8+1] = {"10388902"};
+  char szFuncId[8+1] = {"10388904"};
   char szMsgId[32 + 1] = {0};
   char szStationAddr[64 + 1] = {0};
   char szChannel[1 + 1] = {0};
@@ -481,17 +593,22 @@ int CSvcFuncCosAdpSWReq::Make10388902(ma::CMsgData clMakeMsgDataIn ,  bool bIsOk
   char szChannelId[16 + 1] = {0};
   long long llOrderNo = 0;
   int  iValueLen = 0;
+  char szSession[] = {0};
+  char szCustCode[16 + 1];   // 客户代码
   _ma_try
   {
     if ((iRetCode = m_ptrPacketMapIn->Parse(clMakeMsgDataIn)) != MA_OK)
     {
-      ThrowError(NULL, "CSvcFuncCosAdpSfitCtpReq::{@1} CTP Data Parse failed, return {@2}, PacketData:[{@3}]",
+      ThrowError(NULL, "CSvcFuncCosAdpSwReq::{@1}  Data Parse failed, return {@2}, PacketData:[{@3}]",
         &(_P(__FUNCTION__) + _P(iRetCode) + _P((char*)m_clMsgDataIn.Data())));
       _ma_leave;
     }
-    m_ptrPacketMapIn->GetValue(szStationAddr, sizeof(szStationAddr), "8810");
+    m_ptrPacketMapIn->GetValue(szCustCode, sizeof(szCustCode), "8810");
+    m_ptrPacketMapIn->GetValue(szStationAddr, sizeof(szStationAddr), "8812");
+    m_ptrPacketMapIn->GetValue(szChannel, sizeof(szChannel), "8813");
+    m_ptrPacketMapIn->GetValue(szSession, sizeof(szSession), "8814");
     m_ptrPacketMapIn->GetValue(siIntOrg, "8821");
-    m_ptrPacketMapIn->GetValue(szChannel, sizeof(szChannel), "8815");
+
     m_ptrPacketMapIn->GetValue(szCuacctCode, sizeof(szCuacctCode), "8920");
     m_ptrPacketMapIn->GetValue(llOrderNo, "9106");
     m_ptrPacketMapIn->GetHdrColValue(szUserSession, sizeof(szUserSession), iValueLen, MAP_FID_USER_SESSION);
@@ -524,10 +641,10 @@ int CSvcFuncCosAdpSWReq::Make10388902(ma::CMsgData clMakeMsgDataIn ,  bool bIsOk
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWReq::MakeCancel10388902(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData)
+int CSvcFuncCosAdpSwReq::MakeCancel10388904(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData)
 {
   int iRetCode = MA_OK;
-  char szFuncId[8+1] = {"10388902"};
+  char szFuncId[8+1] = {"10388904"};
   char szMsgId[32 + 1] = {0};
   char szStationAddr[64 + 1] = {0};
   char szChannel[1 + 1] = {0};
@@ -535,24 +652,29 @@ int CSvcFuncCosAdpSWReq::MakeCancel10388902(ma::CMsgData clMakeMsgDataIn,  bool 
   char szCuacctCode[16 + 1] = {0};
   int  iCancleOrderNo = 0;
   long long llOrderNo = 0;
+  char szSession[] = {0};
+  char szCustCode[16 + 1];   // 客户代码
   _ma_try
   {
     if ((iRetCode = m_ptrPacketMapIn->Parse(clMakeMsgDataIn)) != MA_OK)
     {
-      ThrowError(NULL, "CSvcFuncCosAdpSfitCtpReq::{@1} CTP Data Parse failed, return {@2}, PacketData:[{@3}]",
+      ThrowError(NULL, "CSvcFuncCosAdpSwReq::{@1} CTP Data Parse failed, return {@2}, PacketData:[{@3}]",
         &(_P(__FUNCTION__) + _P(iRetCode) + _P((char*)clMakeMsgDataIn.Data())));
       _ma_leave;
     }
-    m_ptrPacketMapIn->GetValue(szStationAddr, sizeof(szStationAddr), "8810");
+    m_ptrPacketMapIn->GetValue(szCustCode, sizeof(szCustCode), "8810");
+    m_ptrPacketMapIn->GetValue(szStationAddr, sizeof(szStationAddr), "8812");
+    m_ptrPacketMapIn->GetValue(szChannel, sizeof(szChannel), "8813");
+    m_ptrPacketMapIn->GetValue(szSession, sizeof(szSession), "8814");
+
     m_ptrPacketMapIn->GetValue(siIntOrg, "8821");
-    m_ptrPacketMapIn->GetValue(szChannel, sizeof(szChannel), "8815");
     m_ptrPacketMapIn->GetValue(szCuacctCode, sizeof(szCuacctCode), "8920");
     m_ptrPacketMapIn->GetValue(iCancleOrderNo, "8992");
     m_ptrPacketMapIn->GetValue(llOrderNo, "9106");
 
     m_ptrPacketMapOut->BeginWrite();
     SetPkgHead(m_ptrPacketMapOut, MAP_PKT_TYPE_BIZ, MAP_MSG_TYPE_REQ, 'T', szFuncId);
-    SetRegular(m_ptrPacketMapOut, szCuacctCode, "", szFuncId, szStationAddr, siIntOrg, szChannel[0]);
+    SetRegular(m_ptrPacketMapOut, szCustCode, szSession, szFuncId, szStationAddr, siIntOrg, szChannel[0]);
 
     snprintf(szMsgId, sizeof(szMsgId), "0|%s|%d|C|", szCuacctCode, iCancleOrderNo);
     m_ptrPacketMapOut->SetHdrColValue(szMsgId, strlen(szMsgId), ma::MAP_FID_MSG_ID);
@@ -581,7 +703,7 @@ int CSvcFuncCosAdpSWReq::MakeCancel10388902(ma::CMsgData clMakeMsgDataIn,  bool 
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWReq::DoWork(void *p_pvdParam)
+int CSvcFuncCosAdpSwReq::DoWork(void *p_pvdParam)
 {
   int	iRetCode = MA_OK;
 
@@ -594,24 +716,28 @@ int CSvcFuncCosAdpSWReq::DoWork(void *p_pvdParam)
   int iTrdDate = 0;
   std::string ssTrdOrderNo = "";
   ma::CMsgData  clMsgDataOut;
+  ma::CMsgData  clMsgDataInTemp; 
   _ma_try
   {
     if ((iRetCode = m_ptrServiceEnv->GetQueueData(m_clMsgDataIn, m_uiInQueId, m_uiSrcFuncId)) != MA_OK)
     {
       return	MA_NO_DATA;
     } 
+    ThrowInfo(NULL, "风控队列收到数据");
     memcpy(szHead, (char*)m_clMsgDataIn.Data(), 64);
-    xsdk::SubDelString(szFuncId, sizeof(szFuncId), szHead, 0, '|');
-    xsdk::SubDelString(szSubsysSn, sizeof(szSubsysSn), szHead, 1, '|');
-    xsdk::SubDelString(szRetOrderNo, sizeof(szRetOrderNo), szHead, 2, '|');
-
+    xsdk::SubDelString(szFuncId, sizeof(szFuncId), szHead, 0, '\1');
+    xsdk::SubDelString(szSubsysSn, sizeof(szSubsysSn), szHead, 1, '\1');
+    xsdk::SubDelString(szRetOrderNo, sizeof(szRetOrderNo), szHead, 2, '\1');
+    ThrowInfo(NULL, "szFuncId:{@1},szSubsysSn:{@2},szRetOrderNo:{@3}",&(_P(szFuncId) + _P(szSubsysSn) + _P(szRetOrderNo)));
     siSubsysSn = atoi(szSubsysSn);
     llRetOrderNo = atol(szRetOrderNo);
 
+    clMsgDataInTemp.InitSize(m_clMsgDataIn.Size() - 64);
+    memcpy((char *)clMsgDataInTemp.Data(), (char*)m_clMsgDataIn.Data() + 64, m_clMsgDataIn.Size() - 64);
     iRetCode = GetTrdDate(iTrdDate);
     if (0 == iTrdDate)
     {
-      ThrowError(NULL, "CSvcFuncCosAdpSWReq::{@1} get TrdDate failed",
+      ThrowError(NULL, "CSvcFuncCosAdpSwReq::{@1} get TrdDate failed",
         &(_P(__FUNCTION__) + _P(iRetCode) ));
       _ma_leave;
     }
@@ -622,22 +748,22 @@ int CSvcFuncCosAdpSWReq::DoWork(void *p_pvdParam)
     xsdk::GetCurrentTimestamp(stCurrentTime);
     xsdk::DatetimeToInt64(llCurrentTime, stCurrentTime);
 
-    ssTrdOrderNo = CSvcFuncCosAdpSWReq::GetTrdOrderNo(llRetOrderNo, iTrdDate);
+    ssTrdOrderNo = CSvcFuncCosAdpSwReq::GetTrdOrderNo(llRetOrderNo, iTrdDate);
 
     // 委托
     if (0 == strcmp(szFuncId, COS_FUN_ID_10302001) || 0 == strcmp(szFuncId, COS_FUN_ID_10312008)
       || 0 == strcmp(szFuncId, COS_FUN_ID_10312001) || 0 == strcmp(szFuncId, COS_FUN_ID_10330003) )
     {
-      iRetCode = m_ptrServiceEnv->PutQueueData(m_clMsgDataIn, m_uiOutQueId, m_uiSrcFuncId, "", 0);
+      iRetCode = m_ptrServiceEnv->PutQueueData(clMsgDataInTemp, m_uiOutQueId, m_uiSrcFuncId, "", 0);
       if (iRetCode != MA_OK)
       {
-        ma::ThrowError(NULL, "CSvcFuncCosAdpSWReq::{@1} Put SWHY Data into OutQueue:{@2} Failed, iRetCode = {@3}", 
+        ma::ThrowError(NULL, "CSvcFuncCosAdpSwReq::{@1} Put SWHY Data into OutQueue:{@2} Failed, iRetCode = {@3}", 
           &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode))); 
 
-        Make10388902(m_clMsgDataIn, false, "风控连接失败,请检查配置与网络", clMsgDataOut);
+        Make10388904(m_clMsgDataIn, false, "风控连接失败,请检查配置与网络", clMsgDataOut);
         if ((iRetCode = m_ptrServiceEnv->PutQueueData(m_clMsgDataOut, 1001, m_uiSrcFuncId)) != MA_OK)
         {
-          ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:1001 Failed return[{@3}]", 
+          ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:1001 Failed return[{@3}]", 
             &(_P(__FUNCTION__)  + _P(iRetCode)));
         }
       }
@@ -647,7 +773,7 @@ int CSvcFuncCosAdpSWReq::DoWork(void *p_pvdParam)
         ST_ORDER_PARAM stOrderParam;
 
         stOrderParam.bIsCancel = FALSE;
-        stOrderParam.clMsgData.Copy(m_clMsgDataIn);
+        stOrderParam.clMsgData.Copy(clMsgDataInTemp);
         stOrderParam.llOrderTime = llCurrentTime;
         stOrderParam.siSubsysSn = siSubsysSn;
 
@@ -660,33 +786,33 @@ int CSvcFuncCosAdpSWReq::DoWork(void *p_pvdParam)
     else if( 0 == strcmp(szFuncId, COS_FUN_ID_10330004) || 0 == strcmp(szFuncId, COS_FUN_ID_10312002) 
       || 0 == strcmp(szFuncId, COS_FUN_ID_10302004))
     {
-      iRetCode = m_ptrServiceEnv->PutQueueData(m_clMsgDataIn, m_uiOutQueId, m_uiSrcFuncId, "", 0);
+      iRetCode = m_ptrServiceEnv->PutQueueData(clMsgDataInTemp, m_uiOutQueId, m_uiSrcFuncId, "", 0);
       if (iRetCode != MA_OK)
       {
-        ma::ThrowWarn(NULL, "CSvcFuncCosAdpSWReq::{@1} Put SWHY Data into OutQueue:{@2} Failed, iRetCode = {@3}", 
+        ma::ThrowWarn(NULL, "CSvcFuncCosAdpSwReq::{@1} Put SWHY Data into OutQueue:{@2} Failed, iRetCode = {@3}", 
           &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode))); 
         CMsgData clMsgDataOut;
 
-        MakeCancel10388902(m_clMsgDataIn, false, "撤单发送失败", clMsgDataOut);
+        MakeCancel10388904(m_clMsgDataIn, false, "撤单发送失败", clMsgDataOut);
         if ((iRetCode = m_ptrServiceEnv->PutQueueData(clMsgDataOut, 1001, m_uiSrcFuncId)) != MA_OK)
         {
-          ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
+          ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
             &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode)));
           _ma_leave;
         }
       }
       else
       {
-        CSvcFuncCosAdpSWReq::m_clRWLock.WriteLock();
+        CSvcFuncCosAdpSwReq::m_clRWLock.WriteLock();
 
         std::map<std::string, ST_ORDER_PARAM>::iterator itrOrder;  
-        itrOrder = CSvcFuncCosAdpSWReq::m_mapCosOrderParam.find(ssTrdOrderNo);
-        if (itrOrder == CSvcFuncCosAdpSWReq::m_mapCosOrderParam.end())
+        itrOrder = CSvcFuncCosAdpSwReq::m_mapCosOrderParam.find(ssTrdOrderNo);
+        if (itrOrder == CSvcFuncCosAdpSwReq::m_mapCosOrderParam.end())
         {
           ST_ORDER_PARAM stOrderParam;
 
           stOrderParam.bIsCancel = TRUE;
-          stOrderParam.clMsgData.Copy(m_clMsgDataIn);
+          stOrderParam.clMsgData.Copy(clMsgDataInTemp);
           stOrderParam.llOrderTime = llCurrentTime;
           stOrderParam.siSubsysSn = siSubsysSn;
           m_mapCosOrderParam[ssTrdOrderNo] = stOrderParam;
@@ -696,7 +822,7 @@ int CSvcFuncCosAdpSWReq::DoWork(void *p_pvdParam)
           itrOrder->second.bIsCancel = TRUE;
           itrOrder->second.llOrderTime = llCurrentTime;
         }
-        CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+        CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
       }
     }
   }
@@ -708,7 +834,7 @@ int CSvcFuncCosAdpSWReq::DoWork(void *p_pvdParam)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-CSvcFuncCosAdpSWAns::CSvcFuncCosAdpSWAns(void)
+CSvcFuncCosAdpSwAns::CSvcFuncCosAdpSwAns(void)
 {
   m_uiCurrNodeId = 0;
   m_bIsRefuse = FALSE;
@@ -718,12 +844,12 @@ CSvcFuncCosAdpSWAns::CSvcFuncCosAdpSWAns(void)
   m_llCancelOutTime = 500;
 }
 
-CSvcFuncCosAdpSWAns::~CSvcFuncCosAdpSWAns(void)
+CSvcFuncCosAdpSwAns::~CSvcFuncCosAdpSwAns(void)
 {
   m_uiCurrNodeId = 0;
 }
 
-int CSvcFuncCosAdpSWAns::Initialize(void)
+int CSvcFuncCosAdpSwAns::Initialize(void)
 {
   int iRetCode = MA_OK;
 
@@ -743,7 +869,7 @@ int CSvcFuncCosAdpSWAns::Initialize(void)
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWAns::Uninitialize(void)
+int CSvcFuncCosAdpSwAns::Uninitialize(void)
 {
   int iRetCode = MA_OK;
 
@@ -757,7 +883,7 @@ int CSvcFuncCosAdpSWAns::Uninitialize(void)
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWAns::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p_iValueSize)
+int CSvcFuncCosAdpSwAns::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p_iValueSize)
 {
   int iRetCode = MA_OK;
 
@@ -768,7 +894,7 @@ int CSvcFuncCosAdpSWAns::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
       iRetCode = MA_ERROR_INVALID_PARAM;
       _ma_throw ma::CFuncException(iRetCode,
         "parameter '{@1}' of function '{@2}' invalid paramter ",
-        &(CRtmParam("p_pvdValuePtr") + CRtmParam("CSvcFuncCosAptSfitCtp::SetOptions")));
+        &(CRtmParam("p_pvdValuePtr") + CRtmParam("CSvcFuncCosAdpSwAns::SetOptions")));
     }
     char szTmp[10]={0};
 
@@ -798,7 +924,7 @@ int CSvcFuncCosAdpSWAns::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
       iRetCode = MA_ERROR_OPTION_UNSUPPORTED;
       _ma_throw ma::CFuncException(iRetCode,
         "{@1} option {@2} unsupported",
-        &(CRtmParam("CSvcFuncCosAptSfitCtp") + CRtmParam(p_iOptionInd)));
+        &(CRtmParam("CSvcFuncCosAdpSwAns") + CRtmParam(p_iOptionInd)));
       break;
     }
   }
@@ -809,7 +935,7 @@ int CSvcFuncCosAdpSWAns::SetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWAns::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p_iValueSize)
+int CSvcFuncCosAdpSwAns::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p_iValueSize)
 {
   int iRetCode = MA_OK;
 
@@ -820,7 +946,7 @@ int CSvcFuncCosAdpSWAns::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
       iRetCode = MA_ERROR_INVALID_PARAM;
       _ma_throw ma::CFuncException(iRetCode,
         "invalid parameter '{@1}' of function '{@2}' ",
-        &(CRtmParam("p_pvdValuePtr") + CRtmParam("CSvcFuncCosAptSfitCtp::GetOptions")));
+        &(CRtmParam("p_pvdValuePtr") + CRtmParam("CSvcFuncCosAdpSwAns::GetOptions")));
     }
 
     if (p_iValueSize <= 0)
@@ -828,7 +954,7 @@ int CSvcFuncCosAdpSWAns::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
       iRetCode = MA_ERROR_INVALID_PARAM;
       _ma_throw ma::CFuncException(iRetCode,
         "paramter {@1} of function {@2} invalid paramter",
-        &(CRtmParam("p_iValueSize")+ CRtmParam("CSvcFuncCosAptSfitCtp::GetOptions")));
+        &(CRtmParam("p_iValueSize")+ CRtmParam("CSvcFuncCosAdpSwAns::GetOptions")));
     }
 
     switch(p_iOptionInd)
@@ -852,7 +978,7 @@ int CSvcFuncCosAdpSWAns::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
       iRetCode = MA_ERROR_OPTION_UNSUPPORTED;
       _ma_throw ma::CFuncException(iRetCode,
         "{@1} option {@2} unsupported",
-        &(CRtmParam("CSvcFuncCosAptSfitCtp") + CRtmParam(p_iOptionInd)));
+        &(CRtmParam("CSvcFuncCosAdpSwAns") + CRtmParam(p_iOptionInd)));
       break;
     }
   }
@@ -863,7 +989,7 @@ int CSvcFuncCosAdpSWAns::GetOptions(int p_iOptionInd, void *p_pvdValuePtr, int p
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWAns::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcEnv)
+int CSvcFuncCosAdpSwAns::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcEnv)
 {
   int iRetCode = MA_OK;
   char szValue[8] = {0};
@@ -906,10 +1032,29 @@ int CSvcFuncCosAdpSWAns::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcE
     ma::g_hKernelEnv->UN_HANDLE.pclKernelEnv->GetOptions(ma::OPT_KERNEL_NODE_ID, &m_uiCurrNodeId, sizeof(m_uiCurrNodeId));
     memset(&m_stSysNode, 0x00, sizeof(ST_SYSMA_NODE));
     iRetCode = m_ptrServiceEnv->GetSysNode(m_stSysNode, m_uiCurrNodeId);
-    // ma::g_hKernelEnv->UN_HANDLE.pclKernelEnv->GetOptions(ma::OPT_KERNEL_NODE_ID, &m_uiCurrNodeId, sizeof(m_uiCurrNodeId));
-  
+    
+    iRetCode = GetXaInfo(m_stDefaultXaInfo, m_stSysNode.siDftXaId);
+    if (iRetCode != MA_OK)
+    {
+      ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns[{@1}] call object GetXaInfo() failed, return {@2}", 
+        &(_P(__LINE__) + _P(iRetCode)));
+      _ma_leave;
+    }
+    if (strlen(m_stDefaultXaInfo.szDaoPath) > 0 && ::g_hKernelEnv->UN_HANDLE.pclKernelEnv->GetObjectFactory() != NULL)
+    {
+      iRetCode = ma::g_hKernelEnv->UN_HANDLE.pclKernelEnv->GetObjectFactory()->SetObjectPaths(m_stDefaultXaInfo.szDaoPath);
+    }
+
+    if ((iRetCode = m_stDefaultXaInfo.ptrXa->Open(m_stDefaultXaInfo.szOpen, 0, 0)) != MA_OK)
+    {
+      ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns open:[{@1}] fail, return {@2} - {@3}",
+        &(_P(m_stDefaultXaInfo.szOpen) + _P(iRetCode) + _P(m_stDefaultXaInfo.ptrXa->GetLastErrorText())));
+      _ma_leave;
+    }
+    m_stDefaultXaInfo.ptrXa->GetDBEngine(m_ptrDBEngine);
+
     char szOutTime[128] = {0},  szWirteLogFlag[32] = {0}, szMatchType[1 + 1] = {0}; 
-     char szOutTime2[128] = {0},  szMatchType2[1 + 1] = {0}; 
+    char szOutTime2[128] = {0},  szMatchType2[1 + 1] = {0}; 
 
     if (m_ptrServiceEnv->GetParamater(szOutTime, sizeof(szOutTime), "out_time", m_uiSrcFuncId) == MA_OK)
     {
@@ -968,14 +1113,14 @@ int CSvcFuncCosAdpSWAns::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcE
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWAns::OnEvent(unsigned int p_uiEventId, ma::CObjectPtr<ma::IData> &p_refptrEventData)
+int CSvcFuncCosAdpSwAns::OnEvent(unsigned int p_uiEventId, ma::CObjectPtr<ma::IData> &p_refptrEventData)
 {
   int iRetCode = MA_OK;
 
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWAns::GetTrdDate(int &p_refTrdDate)
+int CSvcFuncCosAdpSwAns::GetTrdDate(int &p_refTrdDate)
 {
   int iRetCode = MA_OK;
 
@@ -986,7 +1131,7 @@ int CSvcFuncCosAdpSWAns::GetTrdDate(int &p_refTrdDate)
       || (iRetCode = m_ptrBizOrderDataInit->SetServiceDBEngine(m_ptrDBEngine)) != MA_OK)
     {
       iRetCode = MA_ERROR_OBJECT_UNINITIATED;
-      ma::ThrowError(NULL, "CSFuncTsuGetReq[{@1}] CBizOrderDataInit Create Object fail!", &_P(__LINE__));
+      ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns[{@1}] CBizOrderDataInit Create Object fail!", &_P(__LINE__));
       _ma_leave;
     }
     if (m_ptrBizOrderDataInit->GetSysTrdDate(p_refTrdDate) != MA_OK)  //获取交易日期
@@ -1001,7 +1146,7 @@ int CSvcFuncCosAdpSWAns::GetTrdDate(int &p_refTrdDate)
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
+int CSvcFuncCosAdpSwAns::CheckTimeOut(long long p_llCurrentTime)
 {
   int iRetCode = MA_OK;  
   int iHandle = -1;
@@ -1015,9 +1160,9 @@ int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
 
   _ma_try
   {   
-    CSvcFuncCosAdpSWReq::m_clRWLock.WriteLock();
+    CSvcFuncCosAdpSwReq::m_clRWLock.WriteLock();
 
-    for (itrOrder = CSvcFuncCosAdpSWReq::m_mapCosOrderParam.begin(); itrOrder != CSvcFuncCosAdpSWReq::m_mapCosOrderParam.end();)
+    for (itrOrder = CSvcFuncCosAdpSwReq::m_mapCosOrderParam.begin(); itrOrder != CSvcFuncCosAdpSwReq::m_mapCosOrderParam.end();)
     {  
       if ((p_llCurrentTime - itrOrder->second.llOrderTime) >= m_llOutTime)
       {
@@ -1026,13 +1171,13 @@ int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
           // 委托
           if (m_bIsRefuse)
           {
-            Make10388902(itrOrder->second.clMsgData, false, "风控应答超出预期,拒单", clMsgDataOut);
+            Make10388904(itrOrder->second.clMsgData, false, "风控应答超出预期,拒单", clMsgDataOut);
             if ((iRetCode = m_ptrServiceEnv->PutQueueData(clMsgDataOut, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
             {
-              ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
+              ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
                 &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode)));
             }
-            if (m_bWriteLogFlag)
+            if (m_bWriteLogFlag && iRetCode == MA_OK)
             {
               snprintf(szLogBuf, sizeof(szLogBuf), "ORDER_NO:[%d][%04d%02d%02d-%02d%02d%02d] %s", itrOrder->second.llOrderNo,  stCurrentTime.wYear, stCurrentTime.wMonth, stCurrentTime.wDay, stCurrentTime.wHour, stCurrentTime.wMinute, stCurrentTime.wSecond,
                 "风控应答超出预期,拒单"); 
@@ -1045,19 +1190,19 @@ int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
           {
             //  找到原委托应该出的队列
             std::map<short, ST_XA>::iterator itrXa;
-            itrXa = m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
-            if(itrXa == m_mapSysSnQueue.end())
+            itrXa = CSvcFuncCosAdpSwReq::m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
+            if(itrXa == CSvcFuncCosAdpSwReq::m_mapSysSnQueue.end())
             {
-              ma::ThrowError(NULL,"CSvcFuncCosAdpSWAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
-              CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+              ma::ThrowError(NULL,"CSvcFuncCosAdpSwAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
+              CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
               _ma_leave; 
             }
-            if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
+            if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, itrXa->second.iQueueId, m_uiSrcFuncId)) != MA_OK)
             {
-              ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
+              ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
                 &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode)));
             }
-            if (m_bWriteLogFlag)
+            if (m_bWriteLogFlag && iRetCode == MA_OK)
             {
               snprintf(szLogBuf, sizeof(szLogBuf), "ORDER_NO:[%d][%04d%02d%02d-%02d%02d%02d] %s", itrOrder->second.llOrderNo,  stCurrentTime.wYear, stCurrentTime.wMonth, stCurrentTime.wDay, stCurrentTime.wHour, stCurrentTime.wMinute, stCurrentTime.wSecond,
                 "风控应答超出预期,下单");  
@@ -1072,10 +1217,10 @@ int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
           // 撤单
            if (m_bIsRefuse)
            {
-             MakeCancel10388902(itrOrder->second.clMsgData, false, "风控应答超时,拒单", clMsgDataOut);
+             MakeCancel10388904(itrOrder->second.clMsgData, false, "风控应答超时,拒单", clMsgDataOut);
              if ((iRetCode = m_ptrServiceEnv->PutQueueData(clMsgDataOut, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
              {
-               ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
+               ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
                  &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode)));
              }
              if (m_bWriteLogFlag)
@@ -1090,16 +1235,16 @@ int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
            else
            {
              std::map<short, ST_XA>::iterator itrXa;
-             itrXa = m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
-             if(itrXa == m_mapSysSnQueue.end())
+             itrXa = CSvcFuncCosAdpSwReq::m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
+             if(itrXa ==CSvcFuncCosAdpSwReq::m_mapSysSnQueue.end())
              {
-               ma::ThrowError(NULL,"CSvcFuncCosAdpSWAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
-               CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+               ma::ThrowError(NULL,"CSvcFuncCosAdpSwAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
+               CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
                _ma_leave; 
              }
-             if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
+             if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, itrXa->second.iQueueId, m_uiSrcFuncId)) != MA_OK)
              {
-               ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
+               ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
                  &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode)));
              }
              if (m_bWriteLogFlag)
@@ -1112,15 +1257,14 @@ int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
              }
            }
         }
-
+        CSvcFuncCosAdpSwReq::m_mapCosOrderParam.erase(itrOrder++);
       }
       else
       {
         itrOrder++;
       }
-
     }
-    CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+    CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
   }
   _ma_catch_finally
   {
@@ -1128,7 +1272,7 @@ int CSvcFuncCosAdpSWAns::CheckTimeOut(long long p_llCurrentTime)
   return iRetCode;
 }
 
-void CSvcFuncCosAdpSWAns::SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char chPkgType, char chMsgType, char chFunType, const char *szFunID)
+void CSvcFuncCosAdpSwAns::SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char chPkgType, char chMsgType, char chFunType, const char *szFunID)
 {
   ptrPacketMap->SetHdrColValue(chPkgType, MAP_FID_PKT_TYPE);
   ptrPacketMap->SetHdrColValue(chMsgType, MAP_FID_MSG_TYPE); 
@@ -1140,7 +1284,7 @@ void CSvcFuncCosAdpSWAns::SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char 
   ptrPacketMap->SetHdrColValue('1', MAP_FID_TOKEN_FLAG);
 }
 
-void CSvcFuncCosAdpSWAns::SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const char *p_pszCust, const char * szSession, const char *szFunID, const char * szOptSite, short siOpOrg, char chChannel)
+void CSvcFuncCosAdpSwAns::SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const char *p_pszCust, const char * szSession, const char *szFunID, const char * szOptSite, short siOpOrg, char chChannel)
 {
   ptrPacketMap->SetValue(p_pszCust, strlen(p_pszCust), "8810");
   ptrPacketMap->SetValue('1', "8811");
@@ -1159,10 +1303,10 @@ void CSvcFuncCosAdpSWAns::SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const
   ptrPacketMap->SetValue(siOpOrg, "8821");
 }
 
-int CSvcFuncCosAdpSWAns::Make10388902(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData)
+int CSvcFuncCosAdpSwAns::Make10388904(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData)
 {
   int iRetCode = MA_OK;
-  char szFuncId[8+1] = {"10388902"};
+  char szFuncId[8+1] = {"10388904"};
   char szMsgId[32 + 1] = {0};
   char szStationAddr[64 + 1] = {0};
   char szChannel[1 + 1] = {0};
@@ -1171,32 +1315,44 @@ int CSvcFuncCosAdpSWAns::Make10388902(ma::CMsgData clMakeMsgDataIn,  bool bIsOk,
   char szUserSession[126 + 1] = {0};
   char szChannelId[16 + 1] = {0};
   long long llOrderNo = 0;
+  char szSession[] = {0};
   int  iValueLen = 0;
+  char szCustCode[16 + 1] = {0};   // 客户代码
+  char szOrderId[21 + 1] = {0};
+  long long llSuborderSn = 0LL;
   _ma_try
   {
     if ((iRetCode = m_ptrPacketMapIn->Parse(clMakeMsgDataIn)) != MA_OK)
     {
-      ThrowError(NULL, "CSvcFuncCosAdpSfitCtpReq::{@1} CTP Data Parse failed, return {@2}, PacketData:[{@3}]",
+      ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1}  Data Parse failed, return {@2}, PacketData:[{@3}]",
         &(_P(__FUNCTION__) + _P(iRetCode) + _P((char*)m_clMsgDataIn.Data())));
       _ma_leave;
     }
-    m_ptrPacketMapIn->GetValue(szStationAddr, sizeof(szStationAddr), "8810");
+    m_ptrPacketMapIn->GetValue(szCustCode, sizeof(szCustCode), "8810");
+    m_ptrPacketMapIn->GetValue(szStationAddr, sizeof(szStationAddr), "8812");
+    m_ptrPacketMapIn->GetValue(szChannel, sizeof(szChannel), "8813");
+    m_ptrPacketMapIn->GetValue(szSession, sizeof(szSession), "8814");
+
     m_ptrPacketMapIn->GetValue(siIntOrg, "8821");
-    m_ptrPacketMapIn->GetValue(szChannel, sizeof(szChannel), "8815");
     m_ptrPacketMapIn->GetValue(szCuacctCode, sizeof(szCuacctCode), "8920");
     m_ptrPacketMapIn->GetValue(llOrderNo, "9106");
-    
+    m_ptrPacketMapIn->GetValue(llSuborderSn, "9107");
+    m_ptrPacketMapIn->GetValue(szOrderId, sizeof(szOrderId), "11");
     m_ptrPacketMapIn->GetHdrColValue(szUserSession, sizeof(szUserSession), iValueLen, MAP_FID_USER_SESSION); 
 
     m_ptrPacketMapOut->BeginWrite();
     SetPkgHead(m_ptrPacketMapOut, MAP_PKT_TYPE_BIZ, MAP_MSG_TYPE_REQ, 'T', szFuncId);
-    SetRegular(m_ptrPacketMapOut, szCuacctCode, "", szFuncId, szStationAddr, siIntOrg, szChannel[0]);
+    SetRegular(m_ptrPacketMapOut, szCustCode, szSession, szFuncId, szStationAddr, siIntOrg, szChannel[0]);
     m_ptrPacketMapOut->SetHdrColValue(szUserSession, strlen(szUserSession), MAP_FID_USER_SESSION); 
-    m_ptrPacketMapOut->SetHdrColValue(szChannelId, strlen(szChannelId), MAP_FID_BIZ_CHANNEL); 
-    snprintf(szMsgId, sizeof(szMsgId), "0|%s|%d|00000000", szCuacctCode, llOrderNo);						
+    m_ptrPacketMapOut->SetHdrColValue(szChannelId, strlen(szChannelId), MAP_FID_BIZ_CHANNEL); 					
     m_ptrPacketMapOut->SetHdrColValue(ORDER_PUSH_TOPIC, strlen(ORDER_PUSH_TOPIC), ma::MAP_FID_PUB_TOPIC); 
-    m_ptrPacketMapOut->SetHdrColValue(szMsgId, strlen(szMsgId), ma::MAP_FID_MSG_ID);
 
+    m_ptrPacketMapOut->SetValue(szOrderId, sizeof(szOrderId), "11");
+    m_ptrPacketMapOut->SetValue(llOrderNo, "9106");
+    m_ptrPacketMapOut->SetValue(llSuborderSn, "9107");
+    m_ptrPacketMapOut->SetValue(ORDER_EXE_STATUS_INVALIDE, "9103");
+    m_ptrPacketMapOut->SetValue(szCuacctCode, sizeof(szCuacctCode), "8920");
+    m_ptrPacketMapOut->SetValue(COS_ORDER_ANS, "9186");
     m_ptrPacketMapOut->SetValue(1, "9301");
     m_ptrPacketMapOut->SetValue(bIsOk ? 0 : -1, "8900");
     m_ptrPacketMapOut->SetValue(szErrInfo, strlen(szErrInfo), "8901");
@@ -1215,11 +1371,11 @@ int CSvcFuncCosAdpSWAns::Make10388902(ma::CMsgData clMakeMsgDataIn,  bool bIsOk,
   }
   return iRetCode;
 }
-
-int CSvcFuncCosAdpSWAns::MakeCancel10388902(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData)
+ 
+int CSvcFuncCosAdpSwAns::MakeCancel10388904(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData)
 {
   int iRetCode = MA_OK;
-  char szFuncId[8+1] = {"10388902"};
+  char szFuncId[8+1] = {"10388904"};
   char szMsgId[32 + 1] = {0};
   char szStationAddr[64 + 1] = {0};
   char szChannel[1 + 1] = {0};
@@ -1227,24 +1383,29 @@ int CSvcFuncCosAdpSWAns::MakeCancel10388902(ma::CMsgData clMakeMsgDataIn,  bool 
   char szCuacctCode[16 + 1] = {0};
   int  iCancleOrderNo = 0;
   long long llOrderNo = 0;
+  char szSession[] = {0};
+  char szCustCode[16 + 1];   // 客户代码
   _ma_try
   {
     if ((iRetCode = m_ptrPacketMapIn->Parse(clMakeMsgDataIn)) != MA_OK)
     {
-      ThrowError(NULL, "CSvcFuncCosAdpSfitCtpReq::{@1} CTP Data Parse failed, return {@2}, PacketData:[{@3}]",
+      ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1}  Data Parse failed, return {@2}, PacketData:[{@3}]",
         &(_P(__FUNCTION__) + _P(iRetCode) + _P((char*)clMakeMsgDataIn.Data())));
       _ma_leave;
     }
-    m_ptrPacketMapIn->GetValue(szStationAddr, sizeof(szStationAddr), "8810");
+    m_ptrPacketMapIn->GetValue(szCustCode, sizeof(szCustCode), "8810");
+    m_ptrPacketMapIn->GetValue(szStationAddr, sizeof(szStationAddr), "8812");
+    m_ptrPacketMapIn->GetValue(szChannel, sizeof(szChannel), "8813");
+    m_ptrPacketMapIn->GetValue(szSession, sizeof(szSession), "8814");
+
     m_ptrPacketMapIn->GetValue(siIntOrg, "8821");
-    m_ptrPacketMapIn->GetValue(szChannel, sizeof(szChannel), "8815");
     m_ptrPacketMapIn->GetValue(szCuacctCode, sizeof(szCuacctCode), "8920");
     m_ptrPacketMapIn->GetValue(iCancleOrderNo, "8992");
     m_ptrPacketMapIn->GetValue(llOrderNo, "9106");
 
     m_ptrPacketMapOut->BeginWrite();
     SetPkgHead(m_ptrPacketMapOut, MAP_PKT_TYPE_BIZ, MAP_MSG_TYPE_REQ, 'T', szFuncId);
-    SetRegular(m_ptrPacketMapOut, szCuacctCode, "", szFuncId, szStationAddr, siIntOrg, szChannel[0]);
+    SetRegular(m_ptrPacketMapOut, szCuacctCode, szSession, szFuncId, szStationAddr, siIntOrg, szChannel[0]);
 				
     snprintf(szMsgId, sizeof(szMsgId), "0|%s|%d|C|", szCuacctCode, iCancleOrderNo);
     m_ptrPacketMapOut->SetHdrColValue(szMsgId, strlen(szMsgId), ma::MAP_FID_MSG_ID);
@@ -1273,18 +1434,62 @@ int CSvcFuncCosAdpSWAns::MakeCancel10388902(ma::CMsgData clMakeMsgDataIn,  bool 
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWAns::GetXaInFoFromName()
+int ma::CSvcFuncCosAdpSwAns::OpenLogFile()
 {
   int iRetCode = MA_OK;
-  CObjectPtr<IDataSysbpuXa>            ptrDataXa;
-  CObjectPtr<IDaoSysbpuXa>             ptrDaoXa;
-  CObjectPtr<IDataSysbpuXaUidx1>       ptrDataSysbpuXaUidx1;
-  CObjectPtr<IRuntimeDb>               ptrRuntimeDb;
-  CObjectPtr<IDBEngine>                ptrRtdbDBEngine;
-  int iHandle = -1;
-  char* pszTemp = NULL;
-  char szQueueId[8] = {0};
-  char szOpen[128+1] = {0};
+
+  _ma_try
+  {
+    char szBizLogFileName[256] = {0};
+    SYSTEMTIME stCurrentTime = {0};   
+    xsdk::GetCurrentTimestamp(stCurrentTime);
+
+#if defined(OS_IS_WINDOWS)
+    snprintf(szBizLogFileName, sizeof(szBizLogFileName), "run\\log\\%04d%02d%02d", stCurrentTime.wYear, stCurrentTime.wMonth, stCurrentTime.wDay);
+#else
+    snprintf(szBizLogFileName, sizeof(szBizLogFileName), "run/log/%04d%02d%02d", stCurrentTime.wYear, stCurrentTime.wMonth, stCurrentTime.wDay);
+#endif
+    if (xsdk::CFolder::FolderExists(szBizLogFileName) != XSDK_OK)
+    {
+      if ((iRetCode = xsdk::CFolder::CreateFolder(szBizLogFileName)) != XSDK_OK)
+      {
+        ThrowError(NULL, "{@1}:{@2} xsdk::CFolder::CreateFolder fail, return[{@3}]", 
+          &(_P(__FILE__) + _P(__FUNCTION__) + _P(iRetCode)));
+        _ma_leave;
+      }
+    }
+
+#if defined(OS_IS_WINDOWS)
+    snprintf(szBizLogFileName, sizeof(szBizLogFileName), "run\\log\\%04d%02d%02d\\call_poll_sw.log", 
+      stCurrentTime.wYear, stCurrentTime.wMonth, stCurrentTime.wDay);
+#else
+    snprintf(szBizLogFileName, sizeof(szBizLogFileName), "run/log/%04d%02d%02d/call_poll.log_sw",
+      stCurrentTime.wYear, stCurrentTime.wMonth, stCurrentTime.wDay);
+#endif
+
+    if ((iRetCode = m_clLogFile.Open(szBizLogFileName, xsdk::CFile::modeWrite|xsdk::CFile::modeCreate|xsdk::CFile::modeNoTruncate)) != XSDK_OK)
+    {
+      ThrowError(NULL, "{@1}:{@2} m_clLogFile.Open fail, return[{@3}]", 
+        &(_P(__FILE__) + _P(__FUNCTION__) + _P(iRetCode)));
+      _ma_leave;
+    }
+  }
+  _ma_catch_finally
+  {
+  }
+
+  return iRetCode;
+}
+
+int ma::CSvcFuncCosAdpSwAns::GetXaInfo(ST_XA_INFO &p_refstXaInfo, short siXaId)
+{
+  int iRetCode = MA_OK;
+
+  CObjectPtr<IDataSysbpuXa> ptrDataXa;
+  CObjectPtr<IDaoSysbpuXa> ptrDaoXa;
+  CObjectPtr<IDataSysbpuXaUidx1> ptrDataSysbpuXaUidx1;
+  CObjectPtr<IRuntimeDb> ptrRuntimeDb;
+  CObjectPtr<IDBEngine> ptrRtdbDBEngine;
 
   _ma_try
   {
@@ -1294,96 +1499,75 @@ int CSvcFuncCosAdpSWAns::GetXaInFoFromName()
       || ptrRuntimeDb->GetDBEngine(ptrRtdbDBEngine) != MA_OK
       || ptrRtdbDBEngine.IsNull())
     {
-      iRetCode = MA_ERROR_OBJECT_UNINITIATED;
-      ma::ThrowError(NULL, "CSFuncTsuGetReq[{@1}] ptrRuntimeDb::GetDBEngine(ptrRtdbDBEngine) fail!", &_P(__LINE__));
-      _ma_leave;
+      _ma_throw ma::CFuncException(MA_ERROR_OBJECT_UNINITIATED,
+        "object {@1} uninitiated",
+        &(_P("ptrRuntimeDb::GetDBEngine(ptrRtdbDBEngine)")));
     }
 
     if (ptrDataXa.Create("CDataSysbpuXa").IsNull()
       || ptrDaoXa.Create("CDaoSysbpuXa").IsNull()
-      || ptrDataSysbpuXaUidx1.Create("CDataSysbpuXaUidx1").IsNull()
-      || ptrDaoXa->SetDBEngine(ptrRtdbDBEngine) != MA_OK
-      )
+      || ptrDataSysbpuXaUidx1.Create("CDataSysbpuXaUidx1").IsNull())
     {
-      iRetCode = MA_ERROR_OBJECT_UNINITIATED;
-      ma::ThrowError(NULL, "CSFuncTsuGetReq[{@1}] CDataSysbpuXa/CDaoSysbpuXa/CDataSysbpuXaUidx2 Create fail!", &_P(__LINE__));
-      _ma_leave;
+      _ma_throw ma::CFuncException(MA_ERROR_UNDEFINED_OBJECT,
+        "create object {@1} failed",
+        &(_P("CDataSysbpuXa/CDaoSysbpuXa/CDataSysbpuXaEx1")));
     }
 
-    if (m_ptrDaoSubsysCfg.Create("CDaoSubsysCfg").IsNull()
-      || m_ptrDataSubsysCfg.Create("CDataSubsysCfg").IsNull()
-      || m_ptrDataSubsysCfgUidx1.Create("CDataSubsysCfgUidx1").IsNull()
-      || m_ptrDataSubsysCfgEx1.Create("CDataSubsysCfgEx1").IsNull()
-      || m_ptrDaoSubsysCfg->SetDBEngine(m_ptrDBEngine) != MA_OK)           
-    {
-      iRetCode = MA_ERROR_OBJECT_UNINITIATED;
-      ma::ThrowError(NULL, "CSFuncTsuGetReq[{@1}] CDaoSubsysCfg/CDataSubsysCfg/CDataSubsysCfgUidx1/CDataSubsysCfgEx1 Create fail!", &_P(__LINE__));
-      _ma_leave;
-    }  
+    ptrDaoXa->SetDBEngine(ptrRtdbDBEngine);
+    ptrDataSysbpuXaUidx1->SetXaId(siXaId);
 
-    m_ptrDataSubsysCfgEx1->SetInput(1);
-    iRetCode = m_ptrDaoSubsysCfg->OpenCursor(iHandle, m_ptrDataSubsysCfg, m_ptrDataSubsysCfgEx1);
-    if (iRetCode != MA_OK)
+    iRetCode = ptrDaoXa->Select(ptrDataXa.Ptr(), ptrDataSysbpuXaUidx1.Ptr());
+
+    if (iRetCode != MA_OK && iRetCode != MA_NO_DATA)
     {
-      m_strLastErrorText = m_ptrDaoSubsysCfg->GetLastErrorText();
-      m_iLastErrorCode = iRetCode;
+      _ma_throw ma::CDaoException(iRetCode, ptrDaoXa->GetLastErrorText());
+    }
+    else if (iRetCode == MA_NO_DATA)
+    {
       _ma_leave;
     }
-
-    ST_XA stXa = {0};
-    while(m_ptrDaoSubsysCfg->Fetch(iHandle) == MA_OK)
+    else
     {
-      ptrDataSysbpuXaUidx1->Initialize();
-      ptrDataSysbpuXaUidx1->SetXaId(m_ptrDataSubsysCfg->GetSubsysSn());
-      iRetCode = ptrDaoXa->Select(ptrDataXa, ptrDataSysbpuXaUidx1);
-      if (iRetCode != MA_OK && iRetCode != MA_NO_DATA)
+      p_refstXaInfo.uiId = ptrDataXa->GetXaId();
+      snprintf(p_refstXaInfo.szName, sizeof(p_refstXaInfo.szName), "%s", ptrDataXa->GetXaName());
+      snprintf(p_refstXaInfo.szClsid, sizeof(p_refstXaInfo.szClsid), "%s", ptrDataXa->GetXaClsid());
+      snprintf(p_refstXaInfo.szOpen, sizeof(p_refstXaInfo.szOpen), "%s", ptrDataXa->GetXaOpen());
+      snprintf(p_refstXaInfo.szClose, sizeof(p_refstXaInfo.szClose), "%s", ptrDataXa->GetXaClose());
+      snprintf(p_refstXaInfo.szOption, sizeof(p_refstXaInfo.szOption), "%s", ptrDataXa->GetXaOption());
+      snprintf(p_refstXaInfo.szDaoPath, sizeof(p_refstXaInfo.szDaoPath), "%s", ptrDataXa->GetXaDaoPath());
+
+      if (p_refstXaInfo.ptrXa.Create(p_refstXaInfo.szClsid).IsNull()
+        || (iRetCode = p_refstXaInfo.ptrXa->SetOptions(OPT_XA_ID, &p_refstXaInfo.uiId, sizeof(p_refstXaInfo.uiId))) != MA_OK
+        || (iRetCode = p_refstXaInfo.ptrXa->SetOptions(OPT_XA_NAME, p_refstXaInfo.szName, strlen(p_refstXaInfo.szName))) != MA_OK
+        /*|| (iRetCode = p_refstXaInfo.ptrXa->Open(p_refstXaInfo.szOpen, 0, 0)) != MA_OK*/)
       {
-        m_strLastErrorText = ptrDaoXa->GetLastErrorText();
-        m_ptrDaoSubsysCfg->CloseCursor(iHandle);
-        _ma_leave;
-      }
-      else if (iRetCode == MA_NO_DATA)
-      {
-        continue;
+        ma::ThrowError(NULL,
+          "create xa object [id:{@1}, name:{@2}, clsid:{@3}] fail, return {@4} - {@5}",
+          &(_P(p_refstXaInfo.uiId)
+          + _P(p_refstXaInfo.szName)
+          + _P(p_refstXaInfo.szClsid)
+          + _P(iRetCode)
+          + _P(p_refstXaInfo.ptrXa->GetLastErrorText())));
+        iRetCode = MA_OK;
       }
       else
       {
-        snprintf(szOpen,sizeof(szOpen), "%s", ptrDataXa->GetXaOpen());
-        pszTemp = strstr(szOpen, "trans_que=");
-        if (pszTemp != NULL)
-        {
-          xsdk::SubTagString(szQueueId, sizeof(szQueueId), pszTemp, "trans_que", '=', ';');
-
-          //将交易系统编码与查找到的队列加入map
-          memset(&stXa, 0, sizeof(ST_XA));
-          stXa.iQueueId = atoi(szQueueId);
-          stXa.siSubSys = m_ptrDataSubsysCfg->GetSubsys();
-          stXa.siSubSysSn = m_ptrDataSubsysCfg->GetSubsysSn();
-          stXa.chSubSysStatus = m_ptrDataSubsysCfg->GetSubsysStatus();
-          strcpy(stXa.szSubsysSnType, m_ptrDataSubsysCfg->GetSubsysType());
-          strcpy(stXa.szSubsysConnstr, m_ptrDataSubsysCfg->GetSubsysConnstr());
-          strcpy(stXa.szSubSysDbConnstr, m_ptrDataSubsysCfg->GetSubsysDbConnstr());
-          m_mapSysSnQueue[stXa.siSubSysSn] = stXa;
-        }
-        else
-        {
-          ma::ThrowError(NULL,  "CSFuncTsuGetReq[{@1}] GetXaOpen[{@2}] have not trans_que=",
-            &( _P(__LINE__) + _P(szOpen)));
-        }
+        ma::ThrowInfo(NULL,
+          "create xa object [id:{@1}, name:{@2}, clsid:{@3}] success",
+          &(_P(p_refstXaInfo.uiId)
+          + _P(p_refstXaInfo.szName)
+          + _P(p_refstXaInfo.szClsid)));
       }
     }
-    m_ptrDaoSubsysCfg->CloseCursor(iHandle);
   }
-
   _ma_catch_finally
   {
     ptrRtdbDBEngine->Commit();
-    COS_ERROR_PRINT
   }
   return iRetCode;
 }
 
-int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
+int CSvcFuncCosAdpSwAns::DoWork(void *p_pvdParam)
 {
   int	iRetCode = MA_OK;
 
@@ -1392,6 +1576,7 @@ int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
   int iTrdDate = 0;
   long long llCurrentTime = 0LL;
 
+  char szLogBuf[1024] = {0};
   char szMsgText[256 + 1] = {0};
   CMsgData clMsgDataIn;
   CMsgData clMsgDataOut;
@@ -1406,7 +1591,7 @@ int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
     xsdk::GetCurrentTimestamp(stCurrentTime);
     xsdk::DatetimeToInt64(llCurrentTime, stCurrentTime);
 
-    if (0 != CSvcFuncCosAdpSWReq::m_mapCosOrderParam.size())
+    if (0 != CSvcFuncCosAdpSwReq::m_mapCosOrderParam.size())
     {  
       CheckTimeOut(llCurrentTime);
     }
@@ -1414,12 +1599,12 @@ int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
     {
       return	MA_NO_DATA;
     }
-    if (0 == CSvcFuncCosAdpSWReq::m_mapCosOrderParam.size())
+    if (0 == CSvcFuncCosAdpSwReq::m_mapCosOrderParam.size())
     {
       return	MA_NO_DATA;
     }
     memcpy(szMsgDataIn, (char *)clMsgDataIn.Data(), sizeof(szMsgDataIn) - 1);
-
+    ThrowInfo(NULL, "风控应答：{@1}", &(_P(szMsgDataIn)));
     if ('{' != szMsgDataIn[0])
     {
       return	MA_NO_DATA;
@@ -1457,42 +1642,53 @@ int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
     iRetCode = GetTrdDate(iTrdDate);
     if (0 == iTrdDate)
     {
-      ThrowError(NULL, "CSvcFuncCosAdpSWReq::{@1} get TrdDate failed",
+      ThrowError(NULL, "CSvcFuncCosAdpSwReq::{@1} get TrdDate failed",
         &(_P(__FUNCTION__) + _P(iRetCode) ));
       _ma_leave;
     }
 
-    std::string ssTrdOrderNo = CSvcFuncCosAdpSWReq::GetTrdOrderNo(llOrderNo, iTrdDate);
+    std::string ssTrdOrderNo = CSvcFuncCosAdpSwReq::GetTrdOrderNo(llOrderNo, iTrdDate);
     std::map<std::string, ST_ORDER_PARAM>::iterator itrOrder;
 
-    CSvcFuncCosAdpSWReq::m_clRWLock.WriteLock();
-    itrOrder = CSvcFuncCosAdpSWReq::m_mapCosOrderParam.find(ssTrdOrderNo);
-
+    CSvcFuncCosAdpSwReq::m_clRWLock.WriteLock();
+    itrOrder = CSvcFuncCosAdpSwReq::m_mapCosOrderParam.find(ssTrdOrderNo);
+    ThrowInfo(NULL, "风控应答队列收到数据");
     // 找到委托
-    if (itrOrder != CSvcFuncCosAdpSWReq::m_mapCosOrderParam.end())
+    if (itrOrder != CSvcFuncCosAdpSwReq::m_mapCosOrderParam.end())
     {
+      ThrowInfo(NULL, "风控应答找到数据");
       // 应答成功
       if (iMsgCode  == MA_OK)
       {
+        ThrowInfo(NULL, "风控应答找到数据---成功");
         // todo找到原委托需要发送队列
         // 成功直接把包发出去
         std::map<short, ST_XA>::iterator itrXa;
-        itrXa = m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
-        if(itrXa == m_mapSysSnQueue.end())
+        itrXa = CSvcFuncCosAdpSwReq::m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
+        if(itrXa == CSvcFuncCosAdpSwReq::m_mapSysSnQueue.end())
         {
-          ma::ThrowError(NULL,"CSvcFuncCosAdpSWAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
+          ma::ThrowError(NULL,"CSvcFuncCosAdpSwAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
           _ma_leave; 
         }
+        ThrowInfo(NULL, "风控应答找到数据---成功---下单");
         if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, itrXa->second.iQueueId, m_uiSrcFuncId)) != MA_OK)
         {
-          ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
+          ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
             &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode)));
-          CSvcFuncCosAdpSWReq::m_mapCosOrderParam.erase(itrOrder);
-          CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+          CSvcFuncCosAdpSwReq::m_mapCosOrderParam.erase(itrOrder);
+          CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
           _ma_leave;
         }
-        CSvcFuncCosAdpSWReq::m_mapCosOrderParam.erase(itrOrder);
-        CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+        if (m_bWriteLogFlag && iRetCode == MA_OK)
+        {
+          snprintf(szLogBuf, sizeof(szLogBuf), "ORDER_NO:[%d][%04d%02d%02d-%02d%02d%02d] %s", itrOrder->second.llOrderNo,  stCurrentTime.wYear, stCurrentTime.wMonth, stCurrentTime.wDay, stCurrentTime.wHour, stCurrentTime.wMinute, stCurrentTime.wSecond,
+            "风控应答成功，下单"); 
+          m_clLogFile.Write(szLogBuf, strlen(szLogBuf));
+          m_clLogFile.Write("\n", 1);
+          m_clLogFile.Flush();
+        }
+        CSvcFuncCosAdpSwReq::m_mapCosOrderParam.erase(itrOrder);
+        CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
       }
       // 应答失败
       else  
@@ -1500,38 +1696,54 @@ int CSvcFuncCosAdpSWAns::DoWork(void *p_pvdParam)
         // 下单委托
         if (!itrOrder->second.bIsCancel)
         {
-          Make10388902(itrOrder->second.clMsgData, false, szMsgText, clMsgDataOut);
+          Make10388904(itrOrder->second.clMsgData, false, szMsgText, clMsgDataOut);
           if ((iRetCode = m_ptrServiceEnv->PutQueueData(clMsgDataOut, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
           {
-            ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
+            ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
               &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode)));
-            CSvcFuncCosAdpSWReq::m_mapCosOrderParam.erase(itrOrder);
-            CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+            CSvcFuncCosAdpSwReq::m_mapCosOrderParam.erase(itrOrder);
+            CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
             _ma_leave;
+          }
+          if (m_bWriteLogFlag && iRetCode == MA_OK)
+          {
+            snprintf(szLogBuf, sizeof(szLogBuf), "ORDER_NO:[%d][%04d%02d%02d-%02d%02d%02d] %s", itrOrder->second.llOrderNo,  stCurrentTime.wYear, stCurrentTime.wMonth, stCurrentTime.wDay, stCurrentTime.wHour, stCurrentTime.wMinute, stCurrentTime.wSecond,
+              "风控应答失败，废单"); 
+            m_clLogFile.Write(szLogBuf, strlen(szLogBuf));
+            m_clLogFile.Write("\n", 1);
+            m_clLogFile.Flush();
           }
         }
         else
         {
           // 撤单委托
-          MakeCancel10388902(itrOrder->second.clMsgData, false, szMsgText, clMsgDataOut);
+          MakeCancel10388904(itrOrder->second.clMsgData, false, szMsgText, clMsgDataOut);
           if ((iRetCode = m_ptrServiceEnv->PutQueueData(clMsgDataOut, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
           {
-            ma::ThrowError(NULL, "CSvcFuncCosAdpSWAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
+            ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
               &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode)));
-            CSvcFuncCosAdpSWReq::m_mapCosOrderParam.erase(itrOrder);
-            CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+            CSvcFuncCosAdpSwReq::m_mapCosOrderParam.erase(itrOrder);
+            CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
             _ma_leave;
+          }
+          if (m_bWriteLogFlag && iRetCode == MA_OK)
+          {
+            snprintf(szLogBuf, sizeof(szLogBuf), "ORDER_NO:[%d][%04d%02d%02d-%02d%02d%02d] %s", itrOrder->second.llOrderNo,  stCurrentTime.wYear, stCurrentTime.wMonth, stCurrentTime.wDay, stCurrentTime.wHour, stCurrentTime.wMinute, stCurrentTime.wSecond,
+              "风控应答失败，废单"); 
+            m_clLogFile.Write(szLogBuf, strlen(szLogBuf));
+            m_clLogFile.Write("\n", 1);
+            m_clLogFile.Flush();
           }
         }
       }
 
-      CSvcFuncCosAdpSWReq::m_mapCosOrderParam.erase(itrOrder);
-      CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+      CSvcFuncCosAdpSwReq::m_mapCosOrderParam.erase(itrOrder);
+      CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
     }
     // 不是本节点
     else 
     {
-      CSvcFuncCosAdpSWReq::m_clRWLock.WriteUnlock();
+      CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
       _ma_leave;
     }
   }
