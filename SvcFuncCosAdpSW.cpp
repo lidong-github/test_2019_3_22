@@ -723,12 +723,11 @@ int CSvcFuncCosAdpSwReq::DoWork(void *p_pvdParam)
     {
       return	MA_NO_DATA;
     } 
-    ThrowInfo(NULL, "风控队列收到数据");
     memcpy(szHead, (char*)m_clMsgDataIn.Data(), 64);
     xsdk::SubDelString(szFuncId, sizeof(szFuncId), szHead, 0, '\1');
     xsdk::SubDelString(szSubsysSn, sizeof(szSubsysSn), szHead, 1, '\1');
     xsdk::SubDelString(szRetOrderNo, sizeof(szRetOrderNo), szHead, 2, '\1');
-    ThrowInfo(NULL, "szFuncId:{@1},szSubsysSn:{@2},szRetOrderNo:{@3}",&(_P(szFuncId) + _P(szSubsysSn) + _P(szRetOrderNo)));
+
     siSubsysSn = atoi(szSubsysSn);
     llRetOrderNo = atol(szRetOrderNo);
 
@@ -1652,16 +1651,11 @@ int CSvcFuncCosAdpSwAns::DoWork(void *p_pvdParam)
 
     CSvcFuncCosAdpSwReq::m_clRWLock.WriteLock();
     itrOrder = CSvcFuncCosAdpSwReq::m_mapCosOrderParam.find(ssTrdOrderNo);
-    ThrowInfo(NULL, "风控应答队列收到数据");
-    // 找到委托
+
     if (itrOrder != CSvcFuncCosAdpSwReq::m_mapCosOrderParam.end())
     {
-      ThrowInfo(NULL, "风控应答找到数据");
-      // 应答成功
       if (iMsgCode  == MA_OK)
       {
-        ThrowInfo(NULL, "风控应答找到数据---成功");
-        // todo找到原委托需要发送队列
         // 成功直接把包发出去
         std::map<short, ST_XA>::iterator itrXa;
         itrXa = CSvcFuncCosAdpSwReq::m_mapSysSnQueue.find(itrOrder->second.siSubsysSn);
@@ -1670,7 +1664,6 @@ int CSvcFuncCosAdpSwAns::DoWork(void *p_pvdParam)
           ma::ThrowError(NULL,"CSvcFuncCosAdpSwAns  not find SubsysSn[{@1}]",&(_P(itrOrder->second.siSubsysSn)));
           _ma_leave; 
         }
-        ThrowInfo(NULL, "风控应答找到数据---成功---下单");
         if ((iRetCode = m_ptrServiceEnv->PutQueueData(itrOrder->second.clMsgData, itrXa->second.iQueueId, m_uiSrcFuncId)) != MA_OK)
         {
           ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
@@ -1740,7 +1733,6 @@ int CSvcFuncCosAdpSwAns::DoWork(void *p_pvdParam)
       CSvcFuncCosAdpSwReq::m_mapCosOrderParam.erase(itrOrder);
       CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
     }
-    // 不是本节点
     else 
     {
       CSvcFuncCosAdpSwReq::m_clRWLock.WriteUnlock();
