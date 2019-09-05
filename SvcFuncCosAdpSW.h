@@ -24,6 +24,7 @@ struct ST_ORDER_PARAM
   BOOL bIsCancel;
   ma::CMsgData clMsgData;
   long long llOrderNo;
+  long long llCancleOrderSn;
 };
 
 struct ST_XA
@@ -65,7 +66,7 @@ public:
   int  GetXaInfo(ST_XA_INFO &p_refstXaInfo, short siXaId);
   static std::string GetTrdOrderNo(long long llOrderNo, int iTrdDate);
   std::string GetTrdCuacctCode(const char *p_pszCuacctCode, const char chCuacctType);
-  int MakeCancel10388904(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
+  int MakeCancel10388904(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData, long long p_llCancleOrderSn);
   int Make10388904(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
   void SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char chPkgType, char chMsgType, char chFunType, const char *szFunID);
   void SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const char *p_pszCust, const char * szSession, const char *szFunID, const char * szOptSite, short siOpOrg, char chChannel);
@@ -122,10 +123,10 @@ public:
 
 private:
   int  Make10388904(ma::CMsgData clMakeMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
-  int  MakeCancel10388904(ma::CMsgData clMsgDataIn,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
+  int  MakeCancel10388904(ST_ORDER_PARAM stOrderParam,  bool bIsOk, const char * szErrInfo, CMsgData &clMakeMsgData);
   void SetPkgHead(CObjectPtr<IPacketMap> &ptrPacketMap, char chPkgType, char chMsgType, char chFunType, const char *szFunID);
   void SetRegular(CObjectPtr<IPacketMap> &ptrPacketMap, const char *p_pszCust, const char * szSession, const char *szFunID, const char * szOptSite, short siOpOrg, char chChannel);
-  int  CheckTimeOut(long long p_llCurrentTime);
+  int  CheckTimeOut(SYSTEMTIME p_stCurrentTime);
   int  GetTrdDate(int &p_refTrdDate);
   int  OpenLogFile();
   int  GetXaInfo(ST_XA_INFO &p_refstXaInfo, short siXaId);
