@@ -800,7 +800,7 @@ int CSvcFuncCosAdpSwReq::DoWork(void *p_pvdParam)
           &(_P(__FUNCTION__) + _P(m_uiOutQueId) + _P(iRetCode))); 
         CMsgData clMsgDataOut;
 
-        MakeCancel10388904(m_clMsgDataIn, false, "³·µ¥·¢ËÍÊ§°Ü", clMsgDataOut, p_llCancleOrderSn);
+        MakeCancel10388904(m_clMsgDataIn, false, "³·µ¥·¢ËÍÊ§°Ü", clMsgDataOut, llCancleOrderSn);
         if ((iRetCode = m_ptrServiceEnv->PutQueueData(clMsgDataOut, 1001, m_uiSrcFuncId)) != MA_OK)
         {
           ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
@@ -1071,7 +1071,7 @@ int CSvcFuncCosAdpSwAns::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcE
 
     if (m_ptrServiceEnv->GetParamater(szOutTime, sizeof(szOutTime), "out_time", m_uiSrcFuncId) == MA_OK)
     {
-      m_llOutTime  = atol(szOutTime);
+      m_llOutTime  = _atoi64(szOutTime);
       if (0 == m_llOutTime)
       {
         m_llOutTime = 500;
@@ -1079,7 +1079,7 @@ int CSvcFuncCosAdpSwAns::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcE
     }
     if (m_ptrServiceEnv->GetParamater(szOutTime2, sizeof(szOutTime2), "out_time2", m_uiSrcFuncId) == MA_OK)
     {
-      m_llCancelOutTime  = atol(szOutTime2);
+      m_llCancelOutTime  = _atoi64(szOutTime2);
       if (0 == m_llCancelOutTime)
       {
         m_llCancelOutTime = 500;
@@ -1640,7 +1640,7 @@ int CSvcFuncCosAdpSwAns::DoWork(void *p_pvdParam)
     if (JsonValue["9106"].isString())
     {
       strOrderNo = JsonValue["9106"].asString();
-      llOrderNo = atol(strOrderNo.c_str());
+      llOrderNo = _atoi64(strOrderNo.c_str());
     }
     if(JsonValue["8819"].isString())
     {
