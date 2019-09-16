@@ -737,8 +737,8 @@ int CSvcFuncCosAdpSwReq::DoWork(void *p_pvdParam)
     xsdk::SubDelString(szRetOrderNo, sizeof(szRetOrderNo), szHead, 2, '\1');
     xsdk::SubDelString(szCancleOrderSn, sizeof(szCancleOrderSn), szHead, 3, '\1');
     siSubsysSn = atoi(szSubsysSn);
-    llRetOrderNo = _atoi64(szRetOrderNo);
-    llCancleOrderSn = _atoi64(szCancleOrderSn);
+    llRetOrderNo = atoll(szRetOrderNo);
+    llCancleOrderSn = atoll(szCancleOrderSn);
 
     clMsgDataInTemp.InitSize(m_clMsgDataIn.Size() - 64);
     memcpy((char *)clMsgDataInTemp.Data(), (char*)m_clMsgDataIn.Data() + 64, m_clMsgDataIn.Size() - 64);
@@ -749,7 +749,6 @@ int CSvcFuncCosAdpSwReq::DoWork(void *p_pvdParam)
         &(_P(__FUNCTION__) + _P(iRetCode) ));
       _ma_leave;
     }
-
     // 获取当前时间，做时间控制
     long long llCurrentTime = 0LL;
     SYSTEMTIME stCurrentTime = {0}; 
@@ -1071,7 +1070,7 @@ int CSvcFuncCosAdpSwAns::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcE
 
     if (m_ptrServiceEnv->GetParamater(szOutTime, sizeof(szOutTime), "out_time", m_uiSrcFuncId) == MA_OK)
     {
-      m_llOutTime  = _atoi64(szOutTime);
+      m_llOutTime  = atoll(szOutTime);
       if (0 == m_llOutTime)
       {
         m_llOutTime = 500;
@@ -1079,7 +1078,7 @@ int CSvcFuncCosAdpSwAns::SetSvcEnv(ma::CObjectPtr<ma::IServiceEnv> &p_refptrSvcE
     }
     if (m_ptrServiceEnv->GetParamater(szOutTime2, sizeof(szOutTime2), "out_time2", m_uiSrcFuncId) == MA_OK)
     {
-      m_llCancelOutTime  = _atoi64(szOutTime2);
+      m_llCancelOutTime  = atoll(szOutTime2);
       if (0 == m_llCancelOutTime)
       {
         m_llCancelOutTime = 500;
@@ -1185,7 +1184,7 @@ int CSvcFuncCosAdpSwAns::CheckTimeOut(SYSTEMTIME p_stCurrentTime)
           // 委托
           if (m_bIsRefuse)
           {
-            Make10388904(itrOrder->second.clMsgData, false, "风控应答超出预期,拒单", clMsgDataOut);
+            Make10388904(itrOrder->second.clMsgData, false, "风控应答超时,拒单", clMsgDataOut);
             if ((iRetCode = m_ptrServiceEnv->PutQueueData(clMsgDataOut, m_uiOutQueId, m_uiSrcFuncId)) != MA_OK)
             {
               ma::ThrowError(NULL, "CSvcFuncCosAdpSwAns::{@1} Put Data into m_uiOutQueId:{@2} Failed return[{@3}]", 
@@ -1194,7 +1193,7 @@ int CSvcFuncCosAdpSwAns::CheckTimeOut(SYSTEMTIME p_stCurrentTime)
             if (m_bWriteLogFlag && iRetCode == MA_OK)
             {
               snprintf(szLogBuf, sizeof(szLogBuf), "ORDER_NO:[%d][%04d%02d%02d-%02d%02d%02d] %s", itrOrder->second.llOrderNo,  p_stCurrentTime.wYear, p_stCurrentTime.wMonth, p_stCurrentTime.wDay, p_stCurrentTime.wHour, p_stCurrentTime.wMinute, p_stCurrentTime.wSecond,
-                "风控应答超出预期,拒单"); 
+                "风控应答超时,拒单"); 
               m_clLogFile.Write(szLogBuf, strlen(szLogBuf));
               m_clLogFile.Write("\n", 1);
               m_clLogFile.Flush();
@@ -1220,7 +1219,7 @@ int CSvcFuncCosAdpSwAns::CheckTimeOut(SYSTEMTIME p_stCurrentTime)
             if (m_bWriteLogFlag && iRetCode == MA_OK)
             {
               snprintf(szLogBuf, sizeof(szLogBuf), "ORDER_NO:[%d][%04d%02d%02d-%02d%02d%02d] %s", itrOrder->second.llOrderNo,  p_stCurrentTime.wYear, p_stCurrentTime.wMonth, p_stCurrentTime.wDay, p_stCurrentTime.wHour, p_stCurrentTime.wMinute, p_stCurrentTime.wSecond,
-                "风控应答超出预期,下单");  
+                "风控应答超时,下单");  
               m_clLogFile.Write(szLogBuf, strlen(szLogBuf));
               m_clLogFile.Write("\n", 1);
               m_clLogFile.Flush();
@@ -1640,7 +1639,7 @@ int CSvcFuncCosAdpSwAns::DoWork(void *p_pvdParam)
     if (JsonValue["9106"].isString())
     {
       strOrderNo = JsonValue["9106"].asString();
-      llOrderNo = _atoi64(strOrderNo.c_str());
+      llOrderNo = atoll(strOrderNo.c_str());
     }
     if(JsonValue["8819"].isString())
     {
